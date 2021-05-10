@@ -8,6 +8,6 @@ Include libhttp header files:
 # Compilation
 
 ```shell
-gcc programme.c -lhttp
+gcc program.c -lhttp
 ```
 
