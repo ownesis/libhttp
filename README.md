@@ -12,7 +12,7 @@ There is however some important information to know before using this library:
 
 ## Documentations
 ### Installation and more
-- [Compilation](Docs/make.md.)
+- [Compilation](Docs/make.md#Compilation)
 - [Installation](Docs/make.md#Installation)
 - [Uninstallation](Docs/make.md#Uninstallation)
 - [Clean](Docs/make.md#Clean)
