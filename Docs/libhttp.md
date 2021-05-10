@@ -391,7 +391,7 @@ Typically is [HTTP_get_req_totalsize](#HTTP_get_req_totalsize) without body size
 HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key);
 ```
 Get a copy of the pointer to the header with key `key`.
-**/!\ This function return a pointer to a malloc, don't forget to use [HTTP_header_key_val_clear](#HTTP_header_key_val_clear) and free the pointer after use. /!\ **
+**/!\ This function return a pointer to a malloc, don't forget to use [HTTP_header_key_val_clear](#HTTP_header_key_val_clear) and free the pointer after use. /!\\**
 
 - Param `http`.
 > Pointer to http context.
@@ -587,7 +587,7 @@ Copy `nbyte` byte of `buf` inside http body.
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http);
 ```
 Get pointer to HTTPBody_t struct who contains pointer to body.
-**/!\ Do NOT free the pointer ! is used by http context. /!\ **
+**/!\ Do NOT free the pointer ! is used by http context. /!\\**
 
 - Param `http`.
 > Pointer to http context.
@@ -596,7 +596,7 @@ Get pointer to HTTPBody_t struct who contains pointer to body.
 > Pointer to HTTPBody_t structure
 
 ## HTTP_parse_req_raw
-```¢
+```c
 int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw);
 ```
 Parse http raw request.
@@ -614,7 +614,7 @@ Parse http raw request.
 > HTTP_OK or HTTP_ERR
 
 ## HTTP_parse_res_raw
-```¢
+```c
 int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw);
 ```
 Parse http raw response.
@@ -641,7 +641,7 @@ Print all key, value header use inside http request/response.
 > Pointer to http context.
 
 ## HTTP_header_pop
-```¢
+```c
 void HTTP_header_pop(HTTP_t *http);
 ```
 Remove (pop) the last header set with [**HTTP_set_header**](#HTTP_set_header).
