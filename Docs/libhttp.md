@@ -1,4 +1,4 @@
-#Compound type
+# Compound type
 - version_t : [enum verion](#Version)
 - status_code_t : [enum status_code](#status_code)
 - method_t : [enum Method](#Method)
@@ -8,7 +8,7 @@
 - HTTPDict_t : [struct HTTPDict](#HTTPDict)
 - HTTPList_t : [struct HTTPList](#HTTPList)
 
-#Functions prototypes
+# Functions prototypes
 - [**crlf_chomp**](#crlf_chomp)(char \*);
 - [**space_chomp**](#space_chomp)(char \*);
 - [**long_to_str**](#long_to_str)(long, char \*, size_t);
