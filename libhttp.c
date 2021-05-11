@@ -449,8 +449,8 @@ size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte) {
 
 static size_t _HTTP_parse_method(HTTP_t *http, char *raw) {
     size_t method_size = 0; 
-    
-    for (int i = 1; i < 10; i++) {
+
+    for (int i = 1; i < ARRAY_SIZE(http->req.array_str_meth); i++) {
         method_size = strlen(http->req.array_str_meth[i]);
        
         if (strncmp(raw, http->req.array_str_meth[i], method_size) == 0) {
@@ -465,8 +465,8 @@ static size_t _HTTP_parse_method(HTTP_t *http, char *raw) {
 
 static size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
     size_t version_size = 0;
-    
-    for (int i = 0; i < 5; i++) {
+
+    for (int i = 0; i < ARRAY_SIZE(http->array_str_ver); i++) {
         version_size = strlen(http->array_str_ver[i]);
        
         if (strncmp(raw, http->array_str_ver[i], version_size) == 0) {
