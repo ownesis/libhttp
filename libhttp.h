@@ -3,6 +3,9 @@
 
 #include <linux/limits.h>
 
+#define bzero(x, len) \
+    (memset((x), 0, (len)))
+
 #define SIZE_WRITE(x, y) \
     ((x > y) ? y : x)
 
