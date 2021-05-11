@@ -337,7 +337,7 @@ Get string code message.
 char *HTTP_get_path(const HTTP_t *http);
 ```
 Get a copy of path string.
-**/!\ This function return a pointer to a malloc, don't forget to free the pointer after use. /!\ **
+**/!\ This function return a pointer to a malloc, don't forget to free the pointer after use. /!\\**
 
 - Param `http`.
 > Pointer to HTTP context.
