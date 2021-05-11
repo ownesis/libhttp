@@ -8,6 +8,11 @@
 - HTTPDict_t : [struct HTTPDict](#HTTPDict)
 - HTTPList_t : [struct HTTPList](#HTTPList)
 
+# Macro functions prototypes
+- [**bzero**](#bzero)(x, len)
+- [**SIZE_WRITE**](#SIZE_WRITE)(x, y)
+- [**ARRAY_SIZE**](#ARRAY_SIZE)(x)
+
 # Functions prototypes
 - [**crlf_chomp**](#crlf_chomp)(char \*);
 - [**space_chomp**](#space_chomp)(char \*);
@@ -219,6 +224,46 @@ struct HTTPList {
     struct HTTPList *next;
 };
 ```
+
+# Macro functions
+## bzero
+```c
+#define bzero(x, len) \
+    (memset((x), 0, (len)))
+```
+Call the function `memset` but this second arguments is `0`.
+- Param `x`
+> Pointer to memory arrea.
+
+- Param `len`
+> Size of `x`.
+
+## SIZE_WRITE
+```c
+#define SIZE_WRITE(x, y) \
+    ((x > y) ? y : x)
+```
+Get the smallest value between `x` and `y`.
+- Param `x`.
+> Integer value.
+
+- Param `y`.
+> Integer value.
+
+- Return
+> The smallest value between `x` and `y`.
+
+## ARRAY_SIZE
+```c
+#define ARRAY_SIZE(x) \
+    (sizeof(x)/sizeof(x[0]))
+```
+Get number of elements inside **array**.
+- Param `x`.
+> Array
+
+- Return
+> Number of elements inside `x`.
 
 # Functions
 ## crlf_chomp 
