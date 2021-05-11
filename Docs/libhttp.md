@@ -49,7 +49,9 @@
 - [**HTTP_header_key_val_clear**](#HTTP_header_key_val_clear)(HTTPDict_t \*);
 - [**HTTP_headers_clear**](#HTTP_headers_clear)(HTTP_t \*);
 - [**HTTP_clear**](#HTTP_clear)(HTTP_t \*\*);
-#Enumerations
+
+# Enumerations
+
 ## Version
 ```c
 enum Version {
