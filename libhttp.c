@@ -128,23 +128,23 @@ char *HTTP_version_to_str(HTTP_t *http, version_t version) {
         return NULL;
 }   
 
-ssize_t HTTP_get_path_len(const HTTP_t *http) {
+size_t HTTP_get_path_len(const HTTP_t *http) {
     if (http->req.path_len > 0)
         return (http->req.path_len - 2);
     else
         return 0;
 }
 
-ssize_t HTTP_get_body_size(const HTTP_t *http) {
+size_t HTTP_get_body_size(const HTTP_t *http) {
     if (http->body.size > 0)
         return http->body.size;
     else
         return 0;
 }
 
-ssize_t HTTP_get_headers_length(HTTPList_t *list) {
+size_t HTTP_get_headers_length(HTTPList_t *list) {
     struct HTTPList *tmp = list;
-    ssize_t count = 0;
+    size_t count = 0;
 
     while (tmp) {
         count += (tmp->dict->val_len + tmp->dict->key_len);
@@ -154,7 +154,7 @@ ssize_t HTTP_get_headers_length(HTTPList_t *list) {
     return count;
 }
 
-ssize_t HTTP_get_nb_headers(HTTP_t *http) {
+size_t HTTP_get_nb_headers(HTTP_t *http) {
     return http->headers_len;;
 }
 
@@ -162,8 +162,8 @@ size_t long_to_str(long dec, char *buf, size_t buf_size) {
     return snprintf(buf, buf_size, "%ld", dec);
 }
 
-ssize_t HTTP_get_response_totalsize(HTTP_t *http) {
-    ssize_t total_size = 0;
+size_t HTTP_get_response_totalsize(HTTP_t *http) {
+    size_t total_size = 0;
 
     /* len of version */
     total_size += strlen(HTTP_version_to_str(http, http->version));
@@ -183,8 +183,8 @@ ssize_t HTTP_get_response_totalsize(HTTP_t *http) {
     return total_size;
 }
 
-ssize_t HTTP_get_request_totalsize(HTTP_t *http) {
-    ssize_t total_size = 0;
+size_t HTTP_get_request_totalsize(HTTP_t *http) {
+    size_t total_size = 0;
 
     /* len of method */
     total_size += strlen(HTTP_method_to_str(http, http->req.method));
@@ -208,8 +208,8 @@ ssize_t HTTP_get_request_totalsize(HTTP_t *http) {
 }
 
 int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
-    ssize_t key_len = strlen(strkey);
-    ssize_t val_len = strlen(strval);
+    size_t key_len = strlen(strkey);
+    size_t val_len = strlen(strval);
     char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
     char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
 
@@ -291,9 +291,9 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
 }
 
 size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
-    ssize_t method_size = strlen(HTTP_method_to_str(header, header->req.method));
-    ssize_t version_size = strlen(HTTP_version_to_str(header, header->version));;
-    ssize_t body_size = HTTP_get_body_size(header);
+    size_t method_size = strlen(HTTP_method_to_str(header, header->req.method));
+    size_t version_size = strlen(HTTP_version_to_str(header, header->version));;
+    size_t body_size = HTTP_get_body_size(header);
     size_t total_size = HTTP_get_request_totalsize(header);
     size_t size_write = 0;
 
@@ -347,8 +347,8 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
 
 size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
     size_t total_size = HTTP_get_response_totalsize(http); 
-    ssize_t version_size = strlen(HTTP_version_to_str(http, http->version));
-    ssize_t size_header = HTTP_get_headers_length(http->headers);
+    size_t version_size = strlen(HTTP_version_to_str(http, http->version));
+    size_t size_header = HTTP_get_headers_length(http->headers);
     size_t size_write = 0;
     char *tmp = NULL;
     char *buffer = malloc(total_size);
@@ -424,7 +424,7 @@ int HTTP_set_path(HTTP_t *header, char *path) {
     return HTTP_OK;
 }
 
-ssize_t HTTP_write_body(HTTP_t *http, void *buf, ssize_t nbyte) {
+size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte) {
     char *tmp = NULL;
     
     if (!buf)
@@ -482,8 +482,8 @@ static size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
 static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
     char *key = NULL;
     char *val = NULL;
-    ssize_t val_len = 0;
-    ssize_t key_len = 0;
+    size_t val_len = 0;
+    size_t key_len = 0;
     char *tmp = NULL;
     char *end_header = NULL;
 
@@ -525,7 +525,7 @@ static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
 
 int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) { 
     char *ptr = (char *)raw;
-    ssize_t body_size = 0;
+    size_t body_size = 0;
     int ret = 0;
 
     char meth[8] = {0};
@@ -842,7 +842,7 @@ status_code_t HTTP_get_status_code(HTTP_t *http) {
 
 char *HTTP_get_path(HTTP_t *header) {
     char *tmp = NULL;
-    ssize_t len = HTTP_get_path_len(header);
+    size_t len = HTTP_get_path_len(header);
     
     tmp = malloc(len);
     
@@ -869,11 +869,11 @@ version_t HTTP_get_version(const HTTP_t *http) {
     return (http->version);
 }
 
-ssize_t HTTP_read_body(HTTP_t *http, void *buf, ssize_t nbyte) {
+size_t HTTP_read_body(HTTP_t *http, void *buf, size_t nbyte) {
     if (!buf)
         return 0;
 
-    ssize_t body_size = http->body.size;
+    size_t body_size = http->body.size;
    
     nbyte = SIZE_WRITE(nbyte, body_size);
 
@@ -887,8 +887,8 @@ int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw) {
     char *ptr = (char *)raw;
     char ver[9] = {0};
     
-    ssize_t body_size = 0;
-    ssize_t ver_len = 0;
+    size_t body_size = 0;
+    size_t ver_len = 0;
     int ret = 0;
     int code = 0;
 
@@ -917,9 +917,9 @@ int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw) {
     return HTTP_OK;
 }
 
-ssize_t HTTP_get_res_head_len(HTTP_t *http) {
-    ssize_t body_size = 0;
-    ssize_t total_size = 0;
+size_t HTTP_get_res_head_len(HTTP_t *http) {
+    size_t body_size = 0;
+    size_t total_size = 0;
 
     body_size = HTTP_get_body_size(http);
     total_size = HTTP_get_response_totalsize(http);
@@ -927,9 +927,9 @@ ssize_t HTTP_get_res_head_len(HTTP_t *http) {
     return (total_size - body_size);
 }
 
-ssize_t HTTP_get_req_head_len(HTTP_t *http) {
-    ssize_t body_size = 0;
-    ssize_t total_size = 0;
+size_t HTTP_get_req_head_len(HTTP_t *http) {
+    size_t body_size = 0;
+    size_t total_size = 0;
 
     body_size = HTTP_get_body_size(http);
     total_size = HTTP_get_request_totalsize(http);

@@ -146,8 +146,8 @@ enum Version {
 struct HTTPDict {
     char *key;
     char *val;
-    ssize_t key_len;
-    ssize_t val_len;
+    size_t key_len;
+    size_t val_len;
 };
 
 struct HTTPList {
@@ -157,7 +157,7 @@ struct HTTPList {
 
 struct HTTPBody {
     char *data;
-    ssize_t size;
+    size_t size;
 };
 
 enum Method {
@@ -202,7 +202,7 @@ struct HTTP {
     char *array_str_ver[5];   
     
     struct HTTPList *headers;
-    ssize_t headers_len;
+    size_t headers_len;
     struct HTTPBody body;
 };
 
@@ -239,7 +239,7 @@ char *space_chomp(char *buff);
  * @return 
  *  Total lenght of key(s)/value(s) string set in list.
  * */
-ssize_t HTTP_get_headers_length(HTTPList_t *list);
+size_t HTTP_get_headers_length(HTTPList_t *list);
 
 
 /* @brief
@@ -281,7 +281,7 @@ char *HTTP_version_to_str(HTTP_t *http, version_t version);
  * @return
  *  Length of path set.
  * */
-ssize_t HTTP_get_path_len(const HTTP_t *http);
+size_t HTTP_get_path_len(const HTTP_t *http);
 
 
 /* @brief
@@ -293,7 +293,7 @@ ssize_t HTTP_get_path_len(const HTTP_t *http);
  * @return
  *  Size of body data set. 
  * */
-ssize_t HTTP_get_body_size(const HTTP_t *http);
+size_t HTTP_get_body_size(const HTTP_t *http);
 
 
 /* @brief
@@ -323,7 +323,7 @@ size_t long_to_str(long dec, char *buf, size_t buf_size);
  * @return
  *  Size of http response.
  * */
-ssize_t HTTP_get_response_totalsize(HTTP_t *http);
+size_t HTTP_get_response_totalsize(HTTP_t *http);
 
 
 /* @brief
@@ -335,7 +335,7 @@ ssize_t HTTP_get_response_totalsize(HTTP_t *http);
  * @return
  *  Size of http request.
  * */
-ssize_t HTTP_get_request_totalsize(HTTP_t *http);
+size_t HTTP_get_request_totalsize(HTTP_t *http);
 
 
 /* @brief
@@ -423,7 +423,7 @@ int HTTP_set_path(HTTP_t *header, char *path);
  * @param nbyte
  *  Size of buf.
  */
-ssize_t HTTP_write_body(HTTP_t *http, void *buf, ssize_t nbyte);
+size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte);
  
 
 /* @brief
@@ -627,7 +627,7 @@ version_t HTTP_get_version(const HTTP_t *http);
  * @param nbyte
  *  Size of *buf param.
  */
-ssize_t HTTP_read_body(HTTP_t *http, void *buf, ssize_t nbyte);
+size_t HTTP_read_body(HTTP_t *http, void *buf, size_t nbyte);
 
 
 /* @brief
@@ -657,7 +657,7 @@ int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw);
  * @return
  *  Length of response head http
  * */
-ssize_t HTTP_get_res_head_len(HTTP_t *http);
+size_t HTTP_get_res_head_len(HTTP_t *http);
 
 
 /* @brief
@@ -669,7 +669,7 @@ ssize_t HTTP_get_res_head_len(HTTP_t *http);
  * @return
  *  Length of request head http
  * */
-ssize_t HTTP_get_req_head_len(HTTP_t *http);
+size_t HTTP_get_req_head_len(HTTP_t *http);
 
 
 /* @brief
