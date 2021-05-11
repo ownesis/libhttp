@@ -14,19 +14,8 @@ There is however some important information to know before using this library:
 - Does not offer socket management.
 - No fuzzer test was performed.
 
-## Documentations
-### Installation and more
-- [Compilation](Docs/make.md#Compilation)
-- [Installation](Docs/make.md#Installation)
-- [Uninstallation](Docs/make.md#Uninstallation)
-- [Clean](Docs/make.md#Clean)
-
-### Library documentation
--  [LibHTTP doc's](Docs/libhttp.md)
-
-### Example and Usage
-- [Some code examples](Examples/)
-- [Usage](Examples/usage.md)
+## Documentation
+The documentation on the use of the library, the compilation and the installation is located on the [wiki](https://github.com/ownesis/libhttp/wiki).
 
 ## Todo
 - [ ] Respect HTTP standards.
