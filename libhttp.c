@@ -539,8 +539,11 @@ int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) {
     meth_len = _HTTP_parse_method(http, meth);
     version_len = _HTTP_parse_version(http, ver);
     
-    if (!meth_len || !version_len)
-        return HTTP_ERR;
+    if (!meth_len) 
+        return HTTP_METHOD_ERR;
+
+    if (!version_len)
+        return HTTP_VERSION_ERR;
 
     HTTP_set_path(http, path);
     
@@ -904,9 +907,12 @@ int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw) {
     ver_len = _HTTP_parse_version(http, ver);
     
     if (!ver_len)
-        return HTTP_ERR;
+        return HTTP_VERSION_ERR;
     
-    HTTP_set_status_code(http, code);
+    ret = HTTP_set_status_code(http, code);
+    
+    if (!ret)
+        return HTTP_STATUS_ERR;
 
     ptr = strstr(ptr, "\r\n")+2;
     

@@ -35,6 +35,9 @@ typedef struct HTTPList HTTPList_t;
 enum HTTPerr {
     HTTP_ERR = 0,
     HTTP_OK,
+    HTTP_METHOD_ERR,
+    HTTP_VERSION_ERR,
+    HTTP_STATUS_ERR
 };
 
 enum status_code {
