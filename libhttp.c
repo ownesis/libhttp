@@ -213,8 +213,6 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
     char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
 
-    printf("%ld", HTTP_get_nb_headers(http));
-
     if (!key || !val)
         return HTTP_ERR;
     
