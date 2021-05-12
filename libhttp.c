@@ -220,23 +220,23 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     bzero(val, val_len+3);
    
     if (!memcpy(key, strkey, key_len))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     if (!memcpy(val, strval, val_len))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     if (!memcpy(key+key_len, ": ", 2))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     if (!memcpy(val+val_len, CRLF, 2))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     struct HTTPList *new = malloc(sizeof(struct HTTPList));
     struct HTTPList *curr = http->headers;
     struct HTTPList *tmp = NULL;
 
     new->dict = malloc(sizeof(struct HTTPDict));
-    if (!new->dict) exit(EXIT_FAILURE);
+    if (!new->dict) return HTTP_ERR;
     
     bzero(new->dict, sizeof(struct HTTPList));
 
@@ -268,12 +268,12 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
 
     while (list) {
         if (!memcpy(tmp, list->dict->key, list->dict->key_len))
-            exit(EXIT_FAILURE);
+            return 0;
         
         tmp = (tmp + list->dict->key_len);
 
         if (!memcpy(tmp, list->dict->val, list->dict->val_len))
-            exit(EXIT_FAILURE);
+            return 0;
         
         tmp = (tmp + list->dict->val_len);
 
@@ -283,7 +283,7 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
     size_write = SIZE_WRITE(buf_size, total_size);
 
     if (!memcpy(buf, buffer, size_write))
-        exit(EXIT_FAILURE);
+        return 0;
 
     free(buffer);
 
@@ -300,45 +300,44 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
     char *tmp =  NULL; 
     char *buffer = malloc(total_size); 
     
-    if (!buffer) exit(EXIT_FAILURE);
+    if (!buffer) return 0;
     
     tmp = buffer;
    
     if (!memcpy(tmp, HTTP_method_to_str(header, header->req.method), method_size))
-        exit(EXIT_FAILURE);
+        return 0;
 
     tmp = (tmp + method_size);
 
     if (!memcpy(tmp, header->req.path, header->req.path_len))
-        exit(EXIT_FAILURE);
+        return 0;
 
     tmp = (tmp + header->req.path_len);
    
     if (!memcpy(tmp, HTTP_version_to_str(header, header->version), version_size))
-        exit(EXIT_FAILURE);
+        return 0;
      
     tmp = (tmp + version_size);
 
     if (!memcpy(tmp, CRLF, 2))
-        exit(EXIT_FAILURE);
+        return 0;
 
     tmp = (tmp + 2);
 
     tmp += _HTTP_write_header(header->headers, tmp, HTTP_get_headers_length(header->headers));
 
     if (!memcpy(tmp, CRLF, 2))
-        exit(EXIT_FAILURE);
+        return 0;
         
     tmp = (tmp + 2);
 
     if (!memcpy(tmp, header->body.data, body_size))
-        exit(EXIT_FAILURE);
+        return 0;
 
     size_write = SIZE_WRITE(buf_size, total_size);
-    //(buf_size > total_size) ? total_size : buf_size;
     
     if (!memcpy(buf, buffer, size_write))
-        exit(EXIT_FAILURE);
+        return 0;
 
     free(buffer);
 
@@ -354,42 +353,42 @@ size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
     char *buffer = malloc(total_size);
 
     if (!buffer) 
-        exit(EXIT_FAILURE);
+        return 0;
     
     bzero(buffer, total_size);
 
     tmp = buffer;
 
     if (!memcpy(buffer, HTTP_version_to_str(http, http->version), version_size))
-        exit(EXIT_FAILURE);
+        return 0;
     
     tmp = tmp+version_size;
 
     if (!memcpy(tmp, http->res.str_code, http->res.str_code_len))
-        exit(EXIT_FAILURE);
+        return 0;
 
     tmp = tmp+http->res.str_code_len;
 
     if (!memcpy(tmp, CRLF, 2))
-        exit(EXIT_FAILURE);
+        return 0;
 
     tmp = tmp+2;
 
     tmp += _HTTP_write_header(http->headers, tmp, size_header);
 
     if (!memcpy(tmp, CRLF, 2))
-        exit(EXIT_FAILURE);
+        return 0;
     
     tmp = tmp+2;
 
     if (!memcpy(tmp, http->body.data, http->body.size))
-        exit(EXIT_FAILURE);
+        return 0;
 
 
     size_write = SIZE_WRITE(buf_size, total_size);
         
     if (!memcpy(buf, buffer, size_write))
-        exit(EXIT_FAILURE);
+        return 0;
     
     free(buffer);
 
@@ -411,13 +410,13 @@ int HTTP_set_path(HTTP_t *header, char *path) {
     tmp = realloc(header->req.path, new_size);
     
     if (!tmp)
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
     
     header->req.path = tmp;
 
     header->req.path[0] = ' ';
     if (!memcpy(header->req.path+1, path, path_len))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     header->req.path[path_len+1] = ' ';
 
@@ -494,22 +493,22 @@ static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
         key = malloc(key_len+1);
       
         if (!key)
-            exit(EXIT_FAILURE);    
+            return NULL;    
 
         bzero(key, key_len + 1);
         if (!memcpy(key, raw, key_len))
-            exit(EXIT_FAILURE);
+            return NULL;
         
         tmp = (strstr(raw, ": ") + 2); /* 2=skip ": " */
         val_len = (end_header - tmp);
         val = malloc(val_len + 1);
     
         if (!val)
-           exit(EXIT_FAILURE); 
+           return NULL; 
 
         bzero(val, val_len + 1);
         if (!memcpy(val, tmp, val_len))
-            exit(EXIT_FAILURE);
+            return NULL;
 
         HTTP_set_header(http, key, val);
         free(key);
@@ -653,12 +652,12 @@ char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
     
     index = _HTTP_get_index_array_code(code);
     if (index == -1)
-        exit(EXIT_FAILURE);
+        return NULL;
 
     array = _HTTP_get_array_by_base(http, base_code);
     
     if(!array)
-        exit(EXIT_FAILURE);
+        return NULL;
 
     str = array[index];
 
@@ -682,7 +681,7 @@ int HTTP_set_status_code(HTTP_t *http, status_code_t code) {
     code_msg = HTTP_get_str_code(http, code);
     
     if (!code_msg) 
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     len_strcode = long_to_str(code, str_code, 4);
     len_msg_code = strlen(code_msg);
@@ -691,10 +690,10 @@ int HTTP_set_status_code(HTTP_t *http, status_code_t code) {
     tmp = realloc(http->res.str_code, total_size);
     
     if (!tmp)
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     if (!memcpy(tmp+1, str_code, len_strcode))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     tmp[0] = ' ';
     tmp[len_strcode+1] = ' ';
@@ -704,7 +703,7 @@ int HTTP_set_status_code(HTTP_t *http, status_code_t code) {
     tmp = tmp+(len_strcode + 2);
 
     if (!memcpy(tmp, code_msg, len_msg_code))
-        exit(EXIT_FAILURE);
+        return HTTP_ERR;
 
     http->res.str_code_len = total_size;
 
@@ -715,7 +714,7 @@ HTTP_t *HTTP_init(void) {
     HTTP_t *http = malloc(sizeof(HTTP_t));
     
     if (!http)
-        exit(EXIT_FAILURE);
+        return NULL;
     
     bzero(http, sizeof(HTTP_t));
 
@@ -723,15 +722,15 @@ HTTP_t *HTTP_init(void) {
  
     http->req.path = malloc(0);
     if (!http->req.path) 
-        exit(EXIT_FAILURE);
+        return NULL;
    
     http->body.data = malloc(0);
     if (!http->body.data)
-        exit(EXIT_FAILURE);
+        return NULL;
 
     http->res.str_code = malloc(0);
     if (!http->res.str_code)
-        exit(EXIT_FAILURE);
+        return NULL;
 
     char *array_meth[NB_METHOD] = {
         "GET", "PUT", "POST", 
@@ -808,13 +807,14 @@ HTTP_t *HTTP_init(void) {
     };
 
     if (!memcpy(&http->array_code, &code, sizeof(struct _array_str)))
-        exit(EXIT_FAILURE);
+        return NULL;
 
     if (!memcpy(&http->req.array_str_meth, &array_meth, (10*sizeof(char *))))
-        exit(EXIT_FAILURE);
+        return NULL;
+
     
     if (!memcpy(&http->array_str_ver, &array_ver, (5*sizeof(char *))))
-        exit(EXIT_FAILURE);
+        return NULL;
 
     return http;
 }
@@ -851,10 +851,10 @@ char *HTTP_get_path(HTTP_t *header) {
     
     tmp = malloc(len);
     
-    if (!tmp) exit(EXIT_FAILURE);
+    if (!tmp) return NULL;
 
     if (!memcpy(tmp, header->req.path+1, len))
-        exit(EXIT_FAILURE);
+        return NULL;
 
     tmp[len] = '\0';
 
