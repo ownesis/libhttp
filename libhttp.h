@@ -1,8 +1,6 @@
 #ifndef _LIB_HTTP_H_
 #define _LIB_HTTP_H_
 
-#include <linux/limits.h>
-
 #define bzero(x, len) \
     (memset((x), 0, (len)))
 
@@ -22,6 +20,8 @@
 #define CODE_REDIRECT 300
 #define CODE_CLI_ERR 400
 #define CODE_SERV_ERR 500
+
+#define PATH_MAX 4096
 
 typedef enum status_code status_code_t;
 typedef enum Method method_t;
