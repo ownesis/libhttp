@@ -115,14 +115,14 @@ char *space_chomp(char *buff) {
 }
 
 char *HTTP_method_to_str(HTTP_t *http, method_t method) {
-    if (method < ARRAY_SIZE(http->req.array_str_meth))
+    if ((unsigned)method < ARRAY_SIZE(http->req.array_str_meth))
         return http->req.array_str_meth[method];
     else
         return NULL;
 }
 
 char *HTTP_version_to_str(HTTP_t *http, version_t version) {
-    if (version < ARRAY_SIZE(http->array_str_ver))
+    if ((unsigned)version < ARRAY_SIZE(http->array_str_ver))
         return http->array_str_ver[version];
     else
         return NULL;
@@ -450,13 +450,13 @@ size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte) {
 static size_t _HTTP_parse_method(HTTP_t *http, char *raw) {
     size_t method_size = 0; 
 
-    for (int i = 1; i < ARRAY_SIZE(http->req.array_str_meth); i++) {
+    for (size_t i = 0; i < NB_METHOD; i++) {
         method_size = strlen(http->req.array_str_meth[i]);
-       
-        if (strncmp(raw, http->req.array_str_meth[i], method_size) == 0) {
+
+        if (strcmp(raw, http->req.array_str_meth[i]) == 0) {
             http->req.method = i;
-       
-            return strlen(http->req.array_str_meth[i]);
+            
+            return method_size;
         }
     }
 
@@ -466,13 +466,13 @@ static size_t _HTTP_parse_method(HTTP_t *http, char *raw) {
 static size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
     size_t version_size = 0;
 
-    for (int i = 0; i < ARRAY_SIZE(http->array_str_ver); i++) {
+    for (size_t i = 0; i < NB_VERSION; i++) {
         version_size = strlen(http->array_str_ver[i]);
        
-        if (strncmp(raw, http->array_str_ver[i], version_size) == 0) {
+        if (strcmp(raw, http->array_str_ver[i]) == 0) {
             http->version = i;
 
-            return strlen(http->array_str_ver[i]);
+            return version_size;
         }
     }
 
@@ -521,21 +521,19 @@ static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
     return (raw + 2) /* 2=skip last CRLF*/;
 }
 
-
-
 int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) { 
     char *ptr = (char *)raw;
     size_t body_size = 0;
     int ret = 0;
 
-    char meth[8] = {0};
+    char meth[10] = {0};
     char path[PATH_MAX] = {0};
     char ver[9] = {0};
     size_t meth_len;
     size_t version_len;
     size_t path_len;
 
-    ret = sscanf(raw, "%7s %4095s %8s\r\n", meth, path, ver);
+    ret = sscanf(raw, "%9s %4095s %8s\r\n", meth, path, ver);
     if (ret != 3)
         return HTTP_ERR;
 
@@ -566,7 +564,6 @@ int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) {
 
     return HTTP_OK;
 }
-
 
 void HTTP_header_key_val_clear(struct HTTPDict *dict) {
     if (dict->key) free(dict->key);
@@ -605,7 +602,8 @@ void HTTP_headers_clear(HTTP_t *http) {
 
 static int _HTTP_get_base_code(status_code_t code) {
     int base_code = -1;
-    
+    code = (unsigned)code;
+
     if (code >= CODE_INFO && code < CODE_SUCCESS)
         base_code = CODE_INFO;
     else if (code >= CODE_SUCCESS && code < CODE_REDIRECT)
@@ -622,7 +620,8 @@ static int _HTTP_get_base_code(status_code_t code) {
 
 static int _HTTP_get_index_array_code(status_code_t code) {
     int base_code = -1;
-    
+    code = (unsigned)code;
+
     base_code = _HTTP_get_base_code(code);
   
     if (base_code == -1)
@@ -648,6 +647,8 @@ char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
     char **array = NULL;
     char *str = NULL;
 
+    code = (unsigned)code;
+
     base_code = _HTTP_get_base_code(code);
     
     index = _HTTP_get_index_array_code(code);
@@ -672,7 +673,7 @@ int HTTP_set_status_code(HTTP_t *http, status_code_t code) {
     size_t len_strcode = 0;
     size_t len_msg_code = 0;
     int base_code = _HTTP_get_base_code(code);
- 
+
     if (base_code == -1)
         return HTTP_ERR;
     
@@ -732,13 +733,17 @@ HTTP_t *HTTP_init(void) {
     if (!http->res.str_code)
         exit(EXIT_FAILURE);
 
-    char *array_meth[10] = {
-        "UNKNOWN", "GET", "PUT", "POST", 
+    char *array_meth[NB_METHOD] = {
+        "GET", "PUT", "POST", 
         "HEAD", "DELETE", "CONNECT", 
-        "OPTIONS", "TRACE", "PATCH"
+        "OPTIONS", "TRACE", "PATCH", "M-SEARCH"
     }; 
 
-    char *array_ver[5] = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1", "HTTP/2", "HTTP/3"};
+    char *array_ver[NB_VERSION] = {"HTTP/0.9", "HTTP/1.0", "HTTP/1.1"};
+
+    http->version = -1;
+    http->req.method = -1;
+    http->res.code = -1;
 
     struct _array_str code = {
         .code_info = {
@@ -824,7 +829,7 @@ void HTTP_clear(HTTP_t **http) {
 }
 
 int HTTP_set_method(HTTP_t *http, method_t method) {
-    if (method < ARRAY_SIZE(http->req.array_str_meth))
+    if ((unsigned)method < ARRAY_SIZE(http->req.array_str_meth))
         http->req.method = method;
     else
         return HTTP_ERR;
@@ -857,7 +862,7 @@ char *HTTP_get_path(HTTP_t *header) {
 }
 
 int HTTP_set_version(HTTP_t *http, version_t version) {
-    if (version < ARRAY_SIZE(http->array_str_ver))
+    if ((unsigned)version < ARRAY_SIZE(http->array_str_ver))
         http->version = version;
     else
         return HTTP_ERR;

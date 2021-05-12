@@ -14,7 +14,8 @@
 
 #define CRLF "\r\n"
 
-#define HTTP_VERSION_MAX_LEN 8 /* HTTP/x.x */
+#define NB_METHOD 10
+#define NB_VERSION 3
 
 #define CODE_INFO 100
 #define CODE_SUCCESS 200
@@ -22,11 +23,9 @@
 #define CODE_CLI_ERR 400
 #define CODE_SERV_ERR 500
 
-typedef enum Version version_t;
 typedef enum status_code status_code_t;
 typedef enum Method method_t;
 typedef enum Version version_t;
-typedef enum HTTPerr HTTPerr_t;
 
 typedef struct HTTP HTTP_t;
 typedef struct HTTPBody HTTPBody_t;
@@ -142,8 +141,6 @@ enum Version {
     HTTPv0_9 = 0,
     HTTPv1_0,
     HTTPv1_1,
-    HTTPv2,
-    HTTPv3
 };
 
 struct HTTPDict {
@@ -164,8 +161,7 @@ struct HTTPBody {
 };
 
 enum Method {
-    UNKNOWN = 0,
-    GET,
+    GET = 0,
     PUT,
     POST,
     HEAD,
@@ -174,17 +170,18 @@ enum Method {
     OPTIONS,
     TRACE,
     PATCH,
+    M_SEARCH,
 };
 
 struct _Response {
-    enum status_code code;
+    status_code_t code;
     char *str_code;
     size_t str_code_len;
 };
 
 struct _Request {
-    enum Method method;
-    char *array_str_meth[10];
+    method_t method;
+    char *array_str_meth[NB_METHOD];
     char *path;
     size_t path_len;   
 };
@@ -201,8 +198,8 @@ struct HTTP {
     struct _array_str array_code;
     struct _Request req;
     struct _Response res;
-    char version;
-    char *array_str_ver[5];   
+    version_t version;
+    char *array_str_ver[NB_VERSION];   
     
     struct HTTPList *headers;
     size_t headers_len;
