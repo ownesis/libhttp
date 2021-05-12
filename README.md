@@ -20,6 +20,6 @@ The documentation on the use of the library, the compilation and the installatio
 
 ## Todo
 - [ ] Respect HTTP standards.
-- [ ] Fuzzer test
+- [x] Fuzzer test
 - [ ] Windows compatible.
 - [ ] C++ compatible.
