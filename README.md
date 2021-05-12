@@ -10,6 +10,7 @@ LibHTTP is an easy-to-use HTTP library written in C allowing you to parse or cre
 
 There is however some important information to know before using this library:
 
+- Only HTTP/1.1 and lower are supported 
 - Does not necessarily meet HTTP standards and may not comply with its RFCs.
 - Does not offer socket management.
 - No fuzzer test was performed.
