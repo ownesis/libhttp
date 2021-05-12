@@ -213,6 +213,8 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
     char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
 
+    printf("%ld", HTTP_get_nb_headers(http));
+
     if (!key || !val)
         return HTTP_ERR;
     
@@ -809,11 +811,10 @@ HTTP_t *HTTP_init(void) {
     if (!memcpy(&http->array_code, &code, sizeof(struct _array_str)))
         return NULL;
 
-    if (!memcpy(&http->req.array_str_meth, &array_meth, (10*sizeof(char *))))
+    if (!memcpy(&http->req.array_str_meth, &array_meth, (NB_METHOD * sizeof(char *))))
         return NULL;
 
-    
-    if (!memcpy(&http->array_str_ver, &array_ver, (5*sizeof(char *))))
+    if (!memcpy(&http->array_str_ver, &array_ver, (NB_VERSION * sizeof(char *))))
         return NULL;
 
     return http;
