@@ -190,6 +190,8 @@ struct _Response {
 
 struct _Request {
     method_t method;
+    HTTPList_t *query;
+    size_t query_len;
     char *array_str_meth[NB_METHOD];
     char *path;
     size_t path_len;   
@@ -210,9 +212,9 @@ struct HTTP {
     version_t version;
     char *array_str_ver[NB_VERSION];   
     
-    struct HTTPList *headers;
+    HTTPList_t *headers;
     size_t headers_len;
-    struct HTTPBody body;
+    HTTPBody_t HTTPBody body;
 };
 
 /* @brief
@@ -237,18 +239,6 @@ char *crlf_chomp(char *buff);
  *  buff without space.
  * */
 char *space_chomp(char *buff);
-
-
-/* @brief
- *  Get the length of all headers set.     
- *  
- * @param list
- *  Pointer of linked list of headers.
- *
- * @return 
- *  Total lenght of key(s)/value(s) string set in list.
- * */
-size_t HTTP_get_headers_length(HTTPList_t *list);
 
 
 /* @brief
@@ -691,8 +681,7 @@ size_t HTTP_get_req_head_len(HTTP_t *http);
  *  Key string to search.
  *
  * @return
- *  Pointer to a malloc of HTTPDict struct.
- *
+ *  NULL or Pointer to a malloc of HTTPDict struct.
  * */
 HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key);
 
@@ -701,9 +690,9 @@ HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key);
  *  Free key and value dict.
  *  
  * @param dict
- *  Pointer to HTTPDict struct.
+ *  Address of pointer to HTTPDict struct.
  * */
-void HTTP_header_key_val_clear(HTTPDict_t *dict);
+void HTTP_dict_clear(HTTPDict_t **dict);
 
 
 /* @brief 
@@ -716,5 +705,88 @@ void HTTP_header_key_val_clear(HTTPDict_t *dict);
  *  NULL or address of body structure.
  * */
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http);
+
+/* @brief
+ *  Print key, value query.
+ *
+ * @param http
+ *  Pointer to http.
+ * */
+void HTTP_show_query(HTTP_t *http);
+
+/* @brief
+ *  Add key, value query.
+ *  
+ * @param http
+ *  Pointer to http.
+ *
+ * @param strkey
+ *  Key string.
+ *
+ * @param strval
+ *  Value string.
+ *  
+ * @return
+ *  HTTP_OK or HTTP_ERR
+ * */
+int HTTP_set_query(HTTP_t *http, const char *strkey, const char *strval);
+
+/* @brief
+ *  Get value string of query with specific key.
+ *
+ * @param http
+ *  Pointer to http.
+ *
+ * @param key
+ *  Key string to search.
+ *
+ * @return
+ *  NULL or Pointer to a malloc of HTTPDict struct.
+ * */
+HTTPDict_t *HTTP_query_get_val_with_key(HTTP_t *http, const char *key);
+
+/* @brief
+ *  Remove first query set.
+ *
+ * @param http
+ *  Pointer to http.
+ * */
+void HTTP_query_pop(HTTP_t *http);
+
+/* @brief
+ *  Get number of headers set
+ *
+ * @param http
+ *  Pointer to http
+ *
+ * @return
+ *  number of headers set.
+ * */
+size_t HTTP_get_nb_headers(HTTP_t *http);
+
+/* @brief
+ *  Get number of query set
+ *
+ * @param http
+ *  Pointer to http
+ *
+ * @return
+ *  number of query set.
+ * */
+size_t HTTP_get_nb_query(HTTP_t *http);
+
+/* @brief
+ *  Parse query `key=value[&]`
+ *  
+ * @param http
+ *  Pointer to http
+ *
+ * @param raw
+ *  Pointer to data to parse.
+ *
+ * @return 
+ *  HTTP_OK or HTTP_ERR
+ * */
+int HTTP_parse_query(HTTP_t *http, void *raw);
 
 #endif /* _LIB_HTTP_H_ */

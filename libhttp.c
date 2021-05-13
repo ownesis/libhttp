@@ -111,6 +111,43 @@ static char **_HTTP_get_array_by_base(HTTP_t *http, int base_code);
  * */
 static int _HTTP_get_size_status_array(int base_code);
 
+/* @brief
+ *  Push HTTPDict struct pointer in list.
+ *
+ * @param list
+ *  Adresse of pointer to list.
+ *
+ * @param dict
+ *  Pointer to dict.
+ *
+ * @return
+ *  HTTP_OK or HTTP_ERR
+ * */
+static int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict);
+
+/* @brief
+ *  Get size of query, len of key, value and more.
+ *
+ * @param http
+ *  Pointer to http
+ *
+ * @return
+ *  Size of query
+ * */
+static size_t _HTTP_get_query_length(HTTP_t *http);
+
+/* @brief
+ *  Get length  of all headers set, len of key and value.
+ *
+ * @param list
+ *  Pointer to linked list
+ *
+ * @return
+ *  Total length pg key(s)/value(s) string set in list
+ * */
+static size_t _HTTP_get_headers_length(HTTPList_t *list);
+
+
 char *crlf_chomp(char *buff) {
     buff[strcspn(buff, CRLF)] = '\0';
     
@@ -151,7 +188,7 @@ size_t HTTP_get_body_size(const HTTP_t *http) {
         return 0;
 }
 
-size_t HTTP_get_headers_length(HTTPList_t *list) {
+static size_t _HTTP_get_headers_length(HTTPList_t *list) {
     struct HTTPList *tmp = list;
     size_t count = 0;
 
@@ -163,8 +200,30 @@ size_t HTTP_get_headers_length(HTTPList_t *list) {
     return count;
 }
 
+static size_t _HTTP_get_query_length(HTTP_t *http) {
+    struct HTTPList *tmp = http->req.query;
+    size_t count = 0;
+    size_t nb = HTTP_get_nb_query(http);
+
+    if (nb) {
+        count += nb;
+        count += (nb - 1);
+    }
+
+    while (tmp) {
+        count += (tmp->dict->val_len + tmp->dict->key_len);
+        tmp = tmp->next;   
+    }
+
+    return count;
+}
+
 size_t HTTP_get_nb_headers(HTTP_t *http) {
     return http->headers_len;;
+}
+
+size_t HTTP_get_nb_query(HTTP_t *http) {
+    return http->req.query_len;;
 }
 
 size_t long_to_str(long dec, char *buf, size_t buf_size) {
@@ -181,7 +240,7 @@ size_t HTTP_get_response_totalsize(HTTP_t *http) {
     total_size += http->res.str_code_len;
 
     /* Total size of each header */
-    total_size += HTTP_get_headers_length(http->headers);
+    total_size += _HTTP_get_headers_length(http->headers);
 
     /* size of body */
     total_size += HTTP_get_body_size(http);
@@ -194,6 +253,7 @@ size_t HTTP_get_response_totalsize(HTTP_t *http) {
 
 size_t HTTP_get_request_totalsize(HTTP_t *http) {
     size_t total_size = 0;
+    int tmp = 0;
 
     /* len of method */
     total_size += strlen(HTTP_method_to_str(http, http->req.method));
@@ -201,12 +261,23 @@ size_t HTTP_get_request_totalsize(HTTP_t *http) {
     /* len of path */
     total_size += HTTP_get_path_len(http)+2;   
 
+    /* space after path */
+    total_size++;
+
     /* len of version */
     total_size += strlen(HTTP_version_to_str(http, http->version));
 
     /* Total size of each header */
-    total_size += HTTP_get_headers_length(http->headers);
-
+    total_size += _HTTP_get_headers_length(http->headers);
+    
+    /* Total size of each query */
+    tmp = _HTTP_get_query_length(http);
+        
+    if (tmp) {
+        total_size += 1; /* '?' start of query */
+        total_size += tmp;
+    }
+    
     /* size of body */
     total_size += HTTP_get_body_size(http);
 
@@ -216,11 +287,77 @@ size_t HTTP_get_request_totalsize(HTTP_t *http) {
     return total_size;
 }
 
+int HTTP_set_query(HTTP_t *http, const char *strkey, const char *strval) {
+    size_t key_len = strlen(strkey);
+    size_t val_len = strlen(strval);
+    char *key = malloc(key_len+1);
+    char *val = malloc(val_len+1);
+    int ret = 0;
+
+    if (!key || !val)
+        return HTTP_ERR;
+  
+    bzero(key, key_len+1);
+    bzero(val, val_len+1);
+   
+    if (!memcpy(key, strkey, key_len))
+        return HTTP_ERR;
+
+    if (!memcpy(val, strval, val_len))
+        return HTTP_ERR;
+
+    HTTPDict_t *dict = malloc(sizeof(struct HTTPDict));
+
+    if (!dict)
+        return HTTP_ERR;
+
+    bzero(dict, sizeof(struct HTTPList));
+
+    dict->key = key;
+    dict->key_len = key_len;
+    dict->val = val;
+    dict->val_len = val_len;
+
+    ret = _HTTP_list_push(&http->req.query, dict);
+    
+    if (!ret)
+        return HTTP_ERR;
+
+    http->req.query_len += 1;
+    
+    return HTTP_OK;
+}
+
+static int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict) {
+    HTTPList_t *curr = *list;
+    HTTPList_t *tmp = NULL;
+
+    HTTPList_t *new = malloc(sizeof(**list));
+    
+    if (!new)
+        return HTTP_ERR;
+
+    new->dict = dict;
+
+    while (curr) {
+        tmp = curr;
+        curr = curr->next;
+    }
+
+    new->next = NULL;
+
+    if (tmp) tmp->next = new;
+    else *list = new;
+
+    return HTTP_OK;       
+}
+
 int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     size_t key_len = strlen(strkey);
     size_t val_len = strlen(strval);
     char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
     char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
+    int ret = 0;
 
     if (!key || !val)
         return HTTP_ERR;
@@ -240,37 +377,27 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     if (!memcpy(val+val_len, CRLF, 2))
         return HTTP_ERR;
 
-    struct HTTPList *new = malloc(sizeof(struct HTTPList));
-    struct HTTPList *curr = http->headers;
-    struct HTTPList *tmp = NULL;
-
-    new->dict = malloc(sizeof(struct HTTPDict));
-    if (!new->dict) return HTTP_ERR;
+    HTTPDict_t *dict = malloc(sizeof(struct HTTPDict));
+    if (!dict) return HTTP_ERR;
     
-    bzero(new->dict, sizeof(struct HTTPList));
+    bzero(dict, sizeof(struct HTTPList));
 
-    new->dict->key = key;
-    new->dict->key_len = key_len+2;
-    new->dict->val = val;
-    new->dict->val_len = val_len+2;
+    dict->key = key;
+    dict->key_len = key_len+2;
+    dict->val = val;
+    dict->val_len = val_len+2;
 
-    while (curr) {
-        tmp = curr;
-        curr = curr->next;
-    }
-
-    new->next = NULL;
-
-    if (tmp) tmp->next = new;
-    else http->headers = new;
+    ret = _HTTP_list_push(&http->headers, dict);
+    if (!ret)
+        return HTTP_ERR;
 
     http->headers_len += 1;
-
+    
     return HTTP_OK;
 }
 
 static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
-    size_t total_size = HTTP_get_headers_length(list);
+    size_t total_size = _HTTP_get_headers_length(list);
     char *buffer = malloc(total_size);
     char *tmp = buffer;
     size_t size_write = 0;
@@ -299,6 +426,56 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
     return size_write; 
 }
 
+static size_t _HTTP_write_query(HTTPList_t *list, void *buf, size_t buf_size) {
+    char *buffer = malloc(buf_size);
+    char *tmp = buffer;
+    size_t size_write = 0;
+
+    if (!buffer)
+        return 0; 
+
+    bzero(buffer, buf_size);
+
+    if (list) {
+        tmp[0] = '?';
+        tmp = tmp + 1;
+        size_write += 1;
+    }
+
+    while (list) {
+        if (!memcpy(tmp, list->dict->key, list->dict->key_len))
+            return 0;
+        
+        size_write += list->dict->key_len;
+        tmp = tmp + list->dict->key_len;
+
+        tmp[0] = '=';
+        tmp = tmp + 1;
+        size_write += 1;
+
+        if (!memcpy(tmp, list->dict->val, list->dict->val_len))
+            return 0;
+        
+        size_write += list->dict->val_len;
+        tmp = tmp + list->dict->val_len;
+
+        if (list->next) {
+            tmp[0] = '&';
+            tmp = tmp + 1;
+            size_write += 1;
+        }
+
+        list = list->next;
+    }
+
+    if (!memcpy(buf, buffer, size_write))
+        return 0;
+
+    free(buffer);
+
+    return size_write;
+}
+
 size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
     size_t method_size = strlen(HTTP_method_to_str(header, header->req.method));
     size_t version_size = strlen(HTTP_version_to_str(header, header->version));;
@@ -322,7 +499,13 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
         return 0;
 
     tmp = (tmp + header->req.path_len);
+
+    if (header->req.query)
+        tmp += _HTTP_write_query(header->req.query, tmp, (_HTTP_get_query_length(header)+1));
    
+    tmp[0] = ' ';
+    tmp = tmp + 1;
+
     if (!memcpy(tmp, HTTP_version_to_str(header, header->version), version_size))
         return 0;
      
@@ -333,7 +516,7 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
 
     tmp = (tmp + 2);
 
-    tmp += _HTTP_write_header(header->headers, tmp, HTTP_get_headers_length(header->headers));
+    tmp += _HTTP_write_header(header->headers, tmp, _HTTP_get_headers_length(header->headers));
 
     if (!memcpy(tmp, CRLF, 2))
         return 0;
@@ -344,7 +527,7 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
         return 0;
 
     size_write = SIZE_WRITE(buf_size, total_size);
-    
+
     if (!memcpy(buf, buffer, size_write))
         return 0;
 
@@ -356,7 +539,7 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
 size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
     size_t total_size = HTTP_get_response_totalsize(http); 
     size_t version_size = strlen(HTTP_version_to_str(http, http->version));
-    size_t size_header = HTTP_get_headers_length(http->headers);
+    size_t size_header = _HTTP_get_headers_length(http->headers);
     size_t size_write = 0;
     char *tmp = NULL;
     char *buffer = malloc(total_size);
@@ -393,7 +576,6 @@ size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
     if (!memcpy(tmp, http->body.data, http->body.size))
         return 0;
 
-
     size_write = SIZE_WRITE(buf_size, total_size);
         
     if (!memcpy(buf, buffer, size_write))
@@ -407,7 +589,7 @@ size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
 int HTTP_set_path(HTTP_t *header, char *path) {
     char *tmp = NULL;
     size_t path_len = strlen(path);
-    size_t new_size = path_len+2; /* 2 = space at front and end*/
+    size_t new_size = path_len+1; /* 1 = space at front and end*/
 
     if (!path)
         return HTTP_ERR;
@@ -427,7 +609,7 @@ int HTTP_set_path(HTTP_t *header, char *path) {
     if (!memcpy(header->req.path+1, path, path_len))
         return HTTP_ERR;
 
-    header->req.path[path_len+1] = ' ';
+    //header->req.path[path_len+1] = ' ';
 
     return HTTP_OK;
 }
@@ -529,8 +711,75 @@ static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
     return (raw + 2) /* 2=skip last CRLF*/;
 }
 
+int HTTP_parse_query(HTTP_t *http, void *raw) {
+    char *ptr = (char *)raw;
+    size_t key_len = 0;
+    size_t val_len = 0;
+    char *key = NULL;
+    char *val = NULL;
+    char *tmp = NULL;
+
+    tmp = strchr(ptr, '=');
+    if (!tmp) return HTTP_ERR;
+
+    key_len = (tmp - ptr);
+        
+    key = malloc(key_len+1);
+        
+    if (!key)
+        return HTTP_ERR;
+
+    bzero(key, key_len+1);
+
+    if (!memcpy(key, ptr, key_len))
+        return HTTP_ERR;
+
+    ptr = (ptr + key_len + 1); /* 1='=' */
+
+    tmp = strchr(ptr, '&');
+    
+    if (tmp) {
+        val_len = (tmp - ptr);
+        val = malloc(val_len+1);
+
+        if (!val) return HTTP_ERR;
+
+        bzero(val, val_len+1);
+        
+        if (!memcpy(val, ptr, val_len))
+            return HTTP_ERR;
+
+        HTTP_set_query(http, key, val);
+        
+        free(key);
+        free(val);
+
+        HTTP_parse_query(http, ptr+val_len+1);
+
+    } else {
+        tmp = strchr(ptr, '\0');
+        val_len = (tmp - ptr);
+        val = malloc(val_len+1);
+
+        if (!val) return HTTP_ERR;
+
+        bzero(val, val_len+1);
+        
+        if (!memcpy(val, ptr, val_len))
+            return HTTP_ERR;
+
+        HTTP_set_query(http, key, val);
+        
+        free(key);
+        free(val);
+    }
+
+    return HTTP_OK;
+}
+
 int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) { 
     char *ptr = (char *)raw;
+    char *tmp = NULL;
     size_t body_size = 0;
     int ret = 0;
 
@@ -547,7 +796,11 @@ int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) {
 
     meth_len = _HTTP_parse_method(http, meth);
     version_len = _HTTP_parse_version(http, ver);
-    
+
+    tmp = strchr(path, '?');
+    if (tmp)
+        HTTP_parse_query(http, tmp+1);
+
     if (!meth_len) 
         return HTTP_METHOD_ERR;
 
@@ -576,21 +829,47 @@ int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) {
     return HTTP_OK;
 }
 
-void HTTP_header_key_val_clear(struct HTTPDict *dict) {
-    if (dict->key) free(dict->key);
-    if (dict->val) free(dict->val);
+void HTTP_dict_clear(struct HTTPDict **dict) {
+    if ((*dict)->key) free((*dict)->key);
+    if ((*dict)->val) free((*dict)->val);
+
+    free(*dict);
+}
+
+void HTTP_query_pop(HTTP_t *http) {
+    HTTPList_t *tmp = http->req.query->next;
+    
+    if (http->req.query_len > 0 && http->req.query) {
+        HTTP_dict_clear(&http->req.query->dict);
+        free(http->req.query);
+
+        http->req.query = tmp;
+    
+        http->req.query_len -= 1;
+    }
 }
 
 void HTTP_header_pop(HTTP_t *http) {
     HTTPList_t *tmp = http->headers->next;
     
     if (http->headers_len > 0 && http->headers) {
-        HTTP_header_key_val_clear(http->headers->dict);
+        HTTP_dict_clear(&http->headers->dict);
         free(http->headers);
 
         http->headers = tmp;
     
         http->headers_len -= 1;
+    }
+}
+
+void HTTP_show_query(HTTP_t *http) {
+    HTTPList_t *tmp = http->req.query;
+
+    while (tmp) {
+        printf("%s = ", tmp->dict->key);
+        printf("%s\n", tmp->dict->val);
+    
+        tmp = tmp->next;
     }
 }
 
@@ -605,6 +884,12 @@ void HTTP_show_header(HTTP_t *http) {
     }
 }
 
+void HTTP_query_clear(HTTP_t *http) {
+    while (http->req.query) {
+        HTTP_query_pop(http);
+    }
+}
+
 void HTTP_headers_clear(HTTP_t *http) {
     while (http->headers) {
         HTTP_header_pop(http);
@@ -613,7 +898,7 @@ void HTTP_headers_clear(HTTP_t *http) {
 
 static int _HTTP_get_base_code(status_code_t code) {
     int base_code = -1;
-    int x, y;
+    unsigned int x, y;
 
     code = (unsigned)code;
 
@@ -850,7 +1135,8 @@ HTTP_t *HTTP_init(void) {
 
 void HTTP_clear(HTTP_t **http) {
     HTTP_headers_clear(*http);
-    
+    HTTP_query_clear(*http);
+
     free((*http)->res.str_code);
     free((*http)->req.path);
     free((*http)->body.data);
@@ -974,30 +1260,78 @@ size_t HTTP_get_req_head_len(HTTP_t *http) {
     return (total_size - body_size);
 }
 
-HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
-    HTTPList_t *curr = http->headers;
+HTTPDict_t *HTTP_query_get_val_with_key(HTTP_t *http, const char *key) {
+    HTTPList_t *curr = http->req.query;
     HTTPDict_t *dict = malloc(sizeof(HTTPDict_t));
+    size_t key_len = 0;
     size_t val_len = 0;
-    size_t key_len = strlen(key);
     int ret = -1;
 
     if (!dict) return NULL;
 
-    dict->key = malloc(key_len+1);
+    while (curr) {
+        ret = strncmp(curr->dict->key, key, curr->dict->key_len);
+        
+        if (ret == 0) {
+            key_len = curr->dict->key_len;
+            
+            dict->key_len = key_len;
+            dict->key = malloc(key_len+1);
 
-    if (!dict->key) return NULL;
+            if (!dict->key) return NULL;
 
-    bzero(dict->key, key_len+1);
+            bzero(dict->key, key_len+1);
 
-    if(!memcpy(dict->key, key, key_len))
-        return NULL;
+            if(!memcpy(dict->key, key, key_len))
+                return NULL;
 
-    dict->key_len = key_len;
+            val_len = curr->dict->val_len;
+            dict->val_len = val_len;
+            dict->val = malloc(val_len + 1);
+            
+            if (!dict->val) return NULL;
+
+            bzero(dict->val, val_len+1);
+
+            if (!memcpy(dict->val, curr->dict->val, val_len))
+                return NULL;
+            
+            return dict;
+        }
+        
+        curr = curr->next;
+    }
+
+    free(dict);
+
+    return NULL;
+}
+
+HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
+    HTTPList_t *curr = http->headers;
+    HTTPDict_t *dict = malloc(sizeof(HTTPDict_t));
+    size_t val_len = 0;
+    size_t key_len = 0;
+    int ret = -1;
+
+    if (!dict) return NULL;
 
     while (curr) {
         ret = strncmp(curr->dict->key, key, curr->dict->key_len-2); /* -2=': ' */
         
         if (ret == 0) {
+            key_len = (curr->dict->key_len - 2);
+            
+            dict->key_len = key_len;
+            dict->key = malloc(key_len+1);
+
+            if (!dict->key) return NULL;
+
+            bzero(dict->key, key_len+1);
+
+            if(!memcpy(dict->key, key, key_len))
+                return NULL;
+
             val_len = (curr->dict->val_len - 2); /* -2=crlf */
            
             dict->val_len = val_len;
@@ -1016,10 +1350,11 @@ HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
         curr = curr->next;
     }
 
+    free(dict);
+
     return NULL;
 }
 
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http) {
-  return &http->body;  
+    return &http->body;  
 }
-
