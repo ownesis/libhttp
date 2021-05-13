@@ -214,7 +214,7 @@ struct HTTP {
     
     HTTPList_t *headers;
     size_t headers_len;
-    HTTPBody_t HTTPBody body;
+    HTTPBody_t body;
 };
 
 /* @brief
