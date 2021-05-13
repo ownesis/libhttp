@@ -101,6 +101,15 @@ static int _HTTP_get_index_array_code(status_code_t code);
  * */
 static char **_HTTP_get_array_by_base(HTTP_t *http, int base_code);
 
+/* @brief
+ *  Get size of array of string by base_code
+ *
+ * @param base_code
+ *  Base code
+ *
+ * @return size or HTTP_ERR
+ * */
+static int _HTTP_get_size_status_array(int base_code);
 
 char *crlf_chomp(char *buff) {
     buff[strcspn(buff, CRLF)] = '\0';
@@ -604,19 +613,18 @@ void HTTP_headers_clear(HTTP_t *http) {
 
 static int _HTTP_get_base_code(status_code_t code) {
     int base_code = -1;
+    int x, y;
+
     code = (unsigned)code;
 
-    if (code >= CODE_INFO && code < CODE_SUCCESS)
-        base_code = CODE_INFO;
-    else if (code >= CODE_SUCCESS && code < CODE_REDIRECT)
-        base_code = CODE_SUCCESS;
-    else if (code >= CODE_REDIRECT && code < CODE_CLI_ERR)
-        base_code = CODE_REDIRECT;
-    else if (code >= CODE_CLI_ERR && code < CODE_SERV_ERR)
-        base_code = CODE_CLI_ERR;
-    else if (code >= CODE_SERV_ERR && code < CODE_SERV_ERR+100)
-        base_code = CODE_SERV_ERR;
-
+    for (x = CODE_INFO, y = CODE_SUCCESS; 
+            x <= CODE_SERV_ERR; 
+            x += 100, y += 100) {
+    
+        if (code >= x && code < y)
+            return x;
+    }
+    
     return base_code;
 }
 
@@ -643,18 +651,37 @@ static char **_HTTP_get_array_by_base(HTTP_t *http, int base_code) {
     }    
 }
 
+static int _HTTP_get_size_status_array(int base_code) {
+    switch (base_code) {
+        case CODE_INFO:     return SIZE_CODE_INFO;
+        case CODE_SUCCESS:  return SIZE_CODE_SUCCESS;
+        case CODE_REDIRECT: return SIZE_CODE_REDIRECT;
+        case CODE_CLI_ERR:  return SIZE_CODE_CLI_ERR;
+        case CODE_SERV_ERR: return SIZE_CODE_SERV_ERR;
+        default:            return HTTP_ERR;
+    }    
+}
+
 char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
     int base_code = 0; 
     int index = -1;
+    int ret = 0;
     char **array = NULL;
     char *str = NULL;
 
     code = (unsigned)code;
 
     base_code = _HTTP_get_base_code(code);
-    
+ 
+    ret = _HTTP_get_size_status_array(base_code);
+    if (!ret)
+        return NULL;   
+
     index = _HTTP_get_index_array_code(code);
     if (index == -1)
+        return NULL;
+
+    if (index >= ret)
         return NULL;
 
     array = _HTTP_get_array_by_base(http, base_code);
@@ -995,3 +1022,4 @@ HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http) {
   return &http->body;  
 }
+

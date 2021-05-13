@@ -15,6 +15,12 @@
 #define NB_METHOD 10
 #define NB_VERSION 3
 
+#define SIZE_CODE_INFO 4
+#define SIZE_CODE_SUCCESS 27
+#define SIZE_CODE_REDIRECT 11
+#define SIZE_CODE_CLI_ERR 100
+#define SIZE_CODE_SERV_ERR 28
+
 #define CODE_INFO 100
 #define CODE_SUCCESS 200
 #define CODE_REDIRECT 300
@@ -190,11 +196,11 @@ struct _Request {
 };
 
 struct _array_str {
-    char *code_info[4];
-    char *code_success[27];
-    char *code_redirect[11];
-    char *code_cli_err[100];
-    char *code_serv_err[28];
+    char *code_info[SIZE_CODE_INFO];
+    char *code_success[SIZE_CODE_SUCCESS];
+    char *code_redirect[SIZE_CODE_REDIRECT];
+    char *code_cli_err[SIZE_CODE_CLI_ERR];
+    char *code_serv_err[SIZE_CODE_SERV_ERR];
 };
 
 struct HTTP {
