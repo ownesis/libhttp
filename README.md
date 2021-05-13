@@ -18,7 +18,7 @@ There is however some important information to know before using this library:
 The documentation on the use of the library, the compilation and the installation is located on the [wiki](https://github.com/ownesis/libhttp/wiki).
 
 ## Todo
-- [ ] Add query `?[...]&[...]` parser.
+- [x] Add query `?[...]&[...]` parser/setter.
 - [ ] Respect HTTP standards.
 - [x] Fuzzer test
 - [ ] Windows compatible.
