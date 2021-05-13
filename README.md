@@ -12,12 +12,13 @@ There is however some important information to know before using this library:
 
 - Only HTTP/1.1 and lower are supported 
 - Does not necessarily meet HTTP standards and may not comply with its RFCs.
-- Does not offer socket management.
+- Does not offer socket management.[
 
 ## Documentation
 The documentation on the use of the library, the compilation and the installation is located on the [wiki](https://github.com/ownesis/libhttp/wiki).
 
 ## Todo
+- [ ] Add query `?[...]&[...]` parser.
 - [ ] Respect HTTP standards.
 - [x] Fuzzer test
 - [ ] Windows compatible.
