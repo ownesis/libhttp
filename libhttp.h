@@ -789,4 +789,13 @@ size_t HTTP_get_nb_query(HTTP_t *http);
  * */
 int HTTP_parse_query(HTTP_t *http, void *raw);
 
+
+/* @brief
+ *  Clear all query http.
+ * 
+ * @param http
+ *  Pointer to http.
+ * */
+void HTTP_query_clear(HTTP_t *http);
+
 #endif /* _LIB_HTTP_H_ */
