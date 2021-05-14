@@ -6,9 +6,10 @@
 int main(void) {
     version_t version;
     status_code_t code;
+    HTTPDict_t *dict = NULL;
     char data[BUFSIZ] = {0};
     
-    char raw_res[] = "HTTP/1.1 301 Moved Permanently\r\nLocation: http://toto.com/aufondadroite\r\nContent-Length: 0\r\nDate: Mon, 03 May 2021 18:36:29 GMT\r\nServer: heavyhttpd/1.2.3\r\n\r\n";
+    char raw_res[] = "HTTP/1.1 200 OK\r\nContent-Length: 24\r\nDate: Mon, 03 May 2021 18:36:29 GMT\r\nServer: heavyhttpd/1.2.3\r\n\r\noh=shit&here=we&go=again";
 
     size_t raw_res_size = strlen(raw_res);
 
@@ -33,6 +34,22 @@ int main(void) {
     printf("\n-------- body --------\n");
     printf("%s", data);
     printf("\n------ end body ------\n");
+
+    // Parse body data in url format
+    HTTP_parse_query(http, data);
+
+    printf("\n-------- query --------\n");
+    HTTP_show_query(http);
+    printf("\n------ end query ------\n");
+
+    // Get value of 'oh' key.
+    dict = HTTP_query_get_val_with_key(http, "oh");
+    
+    printf("\nPersonal note:\n");
+    printf("Java is a %sty programming langage.\n", dict->val);
+
+    // Clear dict
+    HTTP_dict_clear(&dict);
 
     // free http
     HTTP_clear(&http);

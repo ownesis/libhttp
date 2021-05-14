@@ -2,12 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
-#include "response.h"
-#include "types.h"
-#include "libhttp.h"
-#endif
-
 #include "libhttp.h"
 
 size_t HTTP_get_response_totalsize(HTTP_t *http) {

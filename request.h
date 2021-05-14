@@ -3,7 +3,6 @@
 
 #include "types.h"
 
-
 /* @brief
  *  Write query into buf
  *

@@ -1,12 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#if 0
-#include "libhttp.h"
-#include "utils.h"
-#include "types.h"
-#endif
-
 #include "macro.h"
 
 char *crlf_chomp(char *buff) {

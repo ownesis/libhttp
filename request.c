@@ -2,13 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
-#include "request.h"
-#include "types.h"
-#include "libhttp.h"
-#include "utils.h"
-#endif
-
 #include "libhttp.h"
 
 char *HTTP_method_to_str(HTTP_t *http, method_t method) {
@@ -17,7 +10,6 @@ char *HTTP_method_to_str(HTTP_t *http, method_t method) {
     else
         return NULL;
 }
-
 
 size_t HTTP_get_path_len(const HTTP_t *http) {
     if (http->req.path_len > 0)

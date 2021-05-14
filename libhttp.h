@@ -147,10 +147,6 @@ int _HTTP_get_size_status_array(int base_code);
  * */
 size_t _HTTP_get_query_length(HTTP_t *http);
 
-
-
-
-
 /* @brief
  *  Get length  of all headers set, len of key and value.
  *
@@ -218,7 +214,6 @@ char *_HTTP_parse_header(HTTP_t *http, char *raw);
  * */
 char *HTTP_version_to_str(HTTP_t *http, version_t version);
 
-
 /* @brief
  *  Get size of body data.
  *
@@ -248,7 +243,6 @@ size_t HTTP_get_body_size(const HTTP_t *http);
  * */
 int HTTP_set_header(HTTP_t *header, const char *strkey, const char *strval);
 
-
 /* @brief
  *  Create an copy of body in header->body
  *  
@@ -274,7 +268,6 @@ size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte);
  * */
 void HTTP_header_pop(HTTP_t *http);
 
-
 /* @brief
  *  Show all headers http.
  *
@@ -284,7 +277,6 @@ void HTTP_header_pop(HTTP_t *http);
  * */
 void HTTP_show_header(HTTP_t *http);
 
-
 /* @brief
  *  Clear all header http.
  * 
@@ -293,7 +285,6 @@ void HTTP_show_header(HTTP_t *http);
  * */
 void HTTP_headers_clear(HTTP_t *http);
 
-
 /* @brief
  *  Init http.
  *  
@@ -301,7 +292,6 @@ void HTTP_headers_clear(HTTP_t *http);
  *  http
  * */
 HTTP_t *HTTP_init(void);
-
 
 /* @brief
  *  Clear http
