@@ -176,7 +176,7 @@ char *HTTP_version_to_str(HTTP_t *http, version_t version) {
 
 size_t HTTP_get_path_len(const HTTP_t *http) {
     if (http->req.path_len > 0)
-        return (http->req.path_len - 2);
+        return (http->req.path_len - 1);
     else
         return 0;
 }
@@ -589,7 +589,7 @@ size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
 int HTTP_set_path(HTTP_t *header, char *path) {
     char *tmp = NULL;
     size_t path_len = strlen(path);
-    size_t new_size = path_len+1; /* 1 = space at front and end*/
+    size_t new_size = path_len+1; /* 1 = space at front*/
 
     if (!path)
         return HTTP_ERR;
