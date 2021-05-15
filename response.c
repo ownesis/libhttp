@@ -77,15 +77,14 @@ size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
 
 int _HTTP_get_base_code(status_code_t code) {
     int base_code = -1;
+    unsigned int ucode = (unsigned)code;
     unsigned int x, y;
-
-    code = (unsigned)code;
 
     for (x = CODE_INFO, y = CODE_SUCCESS; 
             x <= CODE_SERV_ERR; 
             x += 100, y += 100) {
     
-        if (code >= x && code < y)
+        if (ucode >= x && ucode < y)
             return x;
     }
     
@@ -94,14 +93,14 @@ int _HTTP_get_base_code(status_code_t code) {
 
 int _HTTP_get_index_array_code(status_code_t code) {
     int base_code = -1;
-    code = (unsigned)code;
+    unsigned int ucode = (unsigned)code;
 
-    base_code = _HTTP_get_base_code(code);
+    base_code = _HTTP_get_base_code(ucode);
   
     if (base_code == -1)
         return -1;
 
-    return (code - base_code);
+    return (ucode - base_code);
 }
 
 char **_HTTP_get_array_by_base(HTTP_t *http, int base_code) {
@@ -132,16 +131,15 @@ char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
     int ret = 0;
     char **array = NULL;
     char *str = NULL;
+    unsigned int ucode = (unsigned)code;
 
-    code = (unsigned)code;
-
-    base_code = _HTTP_get_base_code(code);
+    base_code = _HTTP_get_base_code(ucode);
  
     ret = _HTTP_get_size_status_array(base_code);
     if (!ret)
         return NULL;   
 
-    index = _HTTP_get_index_array_code(code);
+    index = _HTTP_get_index_array_code(ucode);
     if (index == -1)
         return NULL;
 
