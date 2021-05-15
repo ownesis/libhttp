@@ -400,4 +400,18 @@ HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http);
  * */
 size_t HTTP_get_nb_headers(HTTP_t *http);
 
+/* @brief
+ *  Fill the array of pointer to HTTPDict_t with key,value of headers
+ *
+ * @param http.
+ *  Pointer to http context
+ *
+ * @param array
+ *  Array of pointer to HTTPDict_t to fill.
+ *
+ * @return
+ *  Nb of element write inside array.
+ * */
+size_t HTTP_header_get_array(HTTP_t *http, HTTPDict_t *array[], size_t array_size);
+
 #endif /* _LIB_HTTP_H_ */

@@ -252,6 +252,18 @@ void HTTP_query_clear(HTTP_t *http);
  * */
 char *HTTP_method_to_str(HTTP_t *http, method_t method);
 
-
+/* @brief
+ *  Fill the array of pointer to HTTPDict_t with key,value of query
+ *
+ * @param http.
+ *  Pointer to http context
+ *
+ * @param array
+ *  Array of pointer to HTTPDict_t to fill.
+ *
+ * @return
+ *  Nb of element write inside array.
+ * */
+size_t HTTP_query_get_array(HTTP_t *http, HTTPDict_t *array[], size_t array_size);
 
 #endif /* _REQUEST_H_ */

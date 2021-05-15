@@ -23,7 +23,7 @@ size_t _HTTP_get_headers_length(HTTPList_t *list) {
     size_t count = 0;
 
     while (tmp) {
-        count += (tmp->dict->val_len + tmp->dict->key_len);
+        count += ((tmp->dict->val_len + 2) + (tmp->dict->key_len + 2)); /* 2 = ': ' and crlf*/
         tmp = tmp->next;   
     }
 
@@ -61,15 +61,15 @@ int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict) {
 int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     size_t key_len = strlen(strkey);
     size_t val_len = strlen(strval);
-    char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
-    char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
+    char *key = malloc(key_len+1);
+    char *val = malloc(val_len+1);
     int ret = 0;
 
     if (!key || !val)
         return HTTP_ERR;
     
-    bzero(key, key_len+3);
-    bzero(val, val_len+3);
+    bzero(key, key_len+1);
+    bzero(val, val_len+1);
    
     if (!memcpy(key, strkey, key_len))
         return HTTP_ERR;
@@ -77,11 +77,13 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     if (!memcpy(val, strval, val_len))
         return HTTP_ERR;
 
+#if 0
     if (!memcpy(key+key_len, ": ", 2))
         return HTTP_ERR;
 
     if (!memcpy(val+val_len, CRLF, 2))
         return HTTP_ERR;
+#endif
 
     HTTPDict_t *dict = malloc(sizeof(struct HTTPDict));
     if (!dict) return HTTP_ERR;
@@ -89,9 +91,9 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     bzero(dict, sizeof(struct HTTPList));
 
     dict->key = key;
-    dict->key_len = key_len+2;
+    dict->key_len = key_len;
     dict->val = val;
-    dict->val_len = val_len+2;
+    dict->val_len = val_len;
 
     ret = _HTTP_list_push(&http->headers, dict);
     if (!ret)
@@ -114,10 +116,20 @@ size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
         
         tmp = (tmp + list->dict->key_len);
 
+        if (!memcpy(tmp, ": ", 2))
+            return 0;
+
+        tmp = (tmp + 2);
+
         if (!memcpy(tmp, list->dict->val, list->dict->val_len))
             return 0;
         
         tmp = (tmp + list->dict->val_len);
+
+        if (!memcpy(tmp, CRLF, 2))
+            return 0;
+
+        tmp = (tmp + 2);
 
         list = list->next;
     }
@@ -237,8 +249,8 @@ void HTTP_show_header(HTTP_t *http) {
     HTTPList_t *tmp = http->headers;
 
     while (tmp) {
-        printf("%s", tmp->dict->key);
-        printf("%s", tmp->dict->val);
+        printf("%s: ", tmp->dict->key);
+        printf("%s\n", tmp->dict->val);
     
         tmp = tmp->next;
     }
@@ -432,4 +444,15 @@ HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
 
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http) {
     return &http->body;  
+}
+
+size_t HTTP_header_get_array(HTTP_t *http, HTTPDict_t *array[], size_t array_size) {
+    HTTPList_t *tmp = http->headers;
+    size_t count;
+
+    for (count = 0; tmp && count < array_size; tmp = tmp->next, count++) {
+        array[count] = tmp->dict;
+    }
+
+    return count;
 }

@@ -13,7 +13,7 @@ char *HTTP_method_to_str(HTTP_t *http, method_t method) {
 
 size_t HTTP_get_path_len(const HTTP_t *http) {
     if (http->req.path_len > 0)
-        return (http->req.path_len - 1);
+        return (http->req.path_len);
     else
         return 0;
 }
@@ -30,7 +30,7 @@ size_t HTTP_get_request_totalsize(HTTP_t *http) {
     total_size += strlen(HTTP_method_to_str(http, http->req.method));
 
     /* len of path */
-    total_size += HTTP_get_path_len(http)+2;   
+    total_size += HTTP_get_path_len(http)+2; /* 2=spaces*/  
 
     /* space after path */
     total_size++;
@@ -118,6 +118,9 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
 
     tmp = (tmp + method_size);
 
+    tmp[0] = ' ';
+    tmp = (tmp + 1);
+    
     if (!memcpy(tmp, header->req.path, header->req.path_len))
         return 0;
 
@@ -162,7 +165,7 @@ size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
 int HTTP_set_path(HTTP_t *header, char *path) {
     char *tmp = NULL;
     size_t path_len = strlen(path);
-    size_t new_size = path_len+1; /* 1 = space at front*/
+    size_t new_size = path_len+1;
 
     if (!path)
         return HTTP_ERR;
@@ -170,18 +173,20 @@ int HTTP_set_path(HTTP_t *header, char *path) {
     if (path_len > PATH_MAX)
         return HTTP_ERR;
 
-    header->req.path_len = new_size;
+    header->req.path_len = path_len;
     tmp = realloc(header->req.path, new_size);
     
     if (!tmp)
         return HTTP_ERR;
-    
+
     header->req.path = tmp;
+    bzero(header->req.path, new_size);
 
-    header->req.path[0] = ' ';
-    if (!memcpy(header->req.path+1, path, path_len))
+    //header->req.path[0] = ' ';
+
+    if (!memcpy(header->req.path, path, path_len))
         return HTTP_ERR;
-
+    
     //header->req.path[path_len+1] = ' ';
 
     return HTTP_OK;
@@ -291,7 +296,9 @@ int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) {
             + meth_len
             + path_len
             + version_len
-            + 2);
+            + 2); /* spaces of path */
+
+    ptr = (ptr + 2); /* CRLF */
 
     ptr = _HTTP_parse_header(http, ptr); 
    
@@ -348,20 +355,8 @@ method_t HTTP_get_method(HTTP_t *http) {
     return http->req.method;
 }
 
-char *HTTP_get_path(HTTP_t *header) {
-    char *tmp = NULL;
-    size_t len = HTTP_get_path_len(header);
-    
-    tmp = malloc(len);
-    
-    if (!tmp) return NULL;
-
-    if (!memcpy(tmp, header->req.path+1, len))
-        return NULL;
-
-    tmp[len] = '\0';
-
-    return tmp;
+char *HTTP_get_path(HTTP_t *http) {
+    return http->req.path;
 }
 
 size_t HTTP_get_req_head_len(HTTP_t *http) {
@@ -493,13 +488,24 @@ size_t _HTTP_get_query_length(HTTP_t *http) {
     size_t nb = HTTP_get_nb_query(http);
 
     if (nb) {
-        count += nb;
-        count += (nb - 1);
+        count += nb; /* nb of '=' */
+        count += (nb - 1); /* nb of '&' */
     }
 
     while (tmp) {
         count += (tmp->dict->val_len + tmp->dict->key_len);
         tmp = tmp->next;   
+    }
+
+    return count;
+}
+
+size_t HTTP_query_get_array(HTTP_t *http, HTTPDict_t *array[], size_t array_size) {
+    HTTPList_t *tmp = http->req.query;
+    size_t count;
+
+    for (count = 0; tmp && count < array_size; tmp = tmp->next, count++) {
+        array[count] = tmp->dict;
     }
 
     return count;
