@@ -12,7 +12,7 @@ typedef struct HTTPBody HTTPBody_t;
 typedef struct HTTPDict HTTPDict_t;
 typedef struct HTTPList HTTPList_t;
 
-enum HTTPerr {
+enum HTTPErr {
     HTTP_ERR = 0,
     HTTP_OK,
     HTTP_METHOD_ERR,
