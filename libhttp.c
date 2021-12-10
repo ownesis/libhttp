@@ -296,6 +296,7 @@ HTTP_t *HTTP_init(void) {
     http->req.method = -1;
     http->res.code = -1;
 
+#if 0
     struct _array_str code = {
         .code_info = {
             "Continue", "Switch protocol", 
@@ -360,6 +361,7 @@ HTTP_t *HTTP_init(void) {
 
     if (!memcpy(&http->array_code, &code, sizeof(struct _array_str)))
         return NULL;
+#endif
 
     if (!memcpy(&http->req.array_str_meth, &array_meth, (NB_METHOD * sizeof(char *))))
         return NULL;

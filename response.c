@@ -103,13 +103,108 @@ int _HTTP_get_index_array_code(status_code_t code) {
     return (ucode - base_code);
 }
 
-char **_HTTP_get_array_by_base(HTTP_t *http, int base_code) {
+char *_HTTP_array_code_info(unsigned int index) {
+    char *code_info[] = {
+        "Continue", "Switch protocol", 
+        "Processing", "Early hints"
+    };
+
+    if (index >= SIZE_CODE_INFO);
+        return NULL;
+
+    return code_info[index];
+}
+
+char *_HTTP_array_code_success(unsigned int index) {
+    char *code_success[SIZE_CODE_SUCCESS] = {
+        "OK", "Created", "Accepted", 
+        "Non authoritative info", 
+        "No content", "Reset content", 
+        "Partial content", 
+        "Multi status", "Already reported",
+        [10] = "Content diff", 
+        [26] = "Im used"
+    };
+
+    if (index >= SIZE_CODE_SUCCESS)
+        return NULL;
+
+    return code_success[index];
+}
+
+char *_HTTP_array_code_redirect(unsigned int index) {
+    char *code_redirect[SIZE_CODE_REDIRECT] = {
+        "Multiple choice", "Moved permanently", 
+        "Found", "See other", "Not modified",
+        "Use proxy", "Switch proxy", 
+        "Temporary redirect", "Permanent redirect", 
+        [10] = "Too many redirects"
+    };
+    
+    if (index >= SIZE_CODE_REDIRECT)
+        return NULL;
+
+    return code_redirect[index];
+}
+
+char *_HTTP_array_code_cli_err(unsigned int index) {
+    char *code_cli_err[SIZE_CODE_CLI_ERR] = {
+        "Bad request", "Unauthorized", "Payment required",
+        "Forbidden", "Not found", "Method not allowed",
+        "Not acceptable", "Proxy auth required", "Request timeout",
+        "Conflict", "Gone", "Length required", "Precondition failed",
+        "Request entity too large", "Request uri too long",
+        "Unsuported media type", "requested range unsatisfiable",
+        "Expectation failed", "Im teapot", 
+        [21] = "Bad mapping",
+        "Unprocessable entity", "Locked", "Method failure",
+        "Too early", "Upgrade required", 
+        [28] = "Precondition required",
+        "Too many requests",
+        [31] = "Request header fields too large",
+        [44] = "No response",
+        [49] = "Retry with",
+        "Blocked by windows parental controls",
+        "Unvailable for legal reasons",
+        [56] = "Unrecoverable error",
+        [95] = "SSL Certificate error",
+        "SSL Certificate required", "HTTP request send to HTTPS port",
+        [98] = "Token invalid", 
+        "Client closed request"
+    };
+
+    if (index >= SIZE_CODE_CLI_ERR)
+        return NULL;
+
+    return code_cli_err[index];
+}
+
+char *_HTTP_array_code_serv_err(unsigned int index) {
+    char *code_serv_err[SIZE_CODE_SERV_ERR] = {
+        "Internal server error", "Not implemented", "Bad gateway",
+        "Service unavailable", "Gateway time out", 
+        "HTTP version not supported", "Variant also negotiates",
+        "Insufficient storage", "Loop detected",
+        "Bandwith limit exceeded", "Not extended", "Network authentication required",
+        [20] = "Unknown error",
+        "Web server is down", "Connection timed out", "Origin is unreachable",
+        "A timeout occured", "SSL handshake failed", "Invalid SSL certificate",
+        "Railgun error"
+    };
+
+    if (index >= SIZE_CODE_SERV_ERR)
+        return NULL;
+
+    return code_serv_err[index];
+}
+
+char *_HTTP_status_get_msg(int base_code, unsigned int index) {
     switch (base_code) {
-        case CODE_INFO:     return http->array_code.code_info;
-        case CODE_SUCCESS:  return http->array_code.code_success;
-        case CODE_REDIRECT: return http->array_code.code_redirect;
-        case CODE_CLI_ERR:  return http->array_code.code_cli_err;
-        case CODE_SERV_ERR: return http->array_code.code_serv_err;
+        case CODE_INFO:     return _HTTP_array_code_info(index);
+        case CODE_SUCCESS:  return _HTTP_array_code_success(index);
+        case CODE_REDIRECT: return _HTTP_array_code_redirect(index);
+        case CODE_CLI_ERR:  return _HTTP_array_code_cli_err(index);
+        case CODE_SERV_ERR: return _HTTP_array_code_serv_err(index);
         default:            return NULL;
     }    
 }
@@ -146,13 +241,8 @@ char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
     if (index >= ret)
         return NULL;
 
-    array = _HTTP_get_array_by_base(http, base_code);
+    str = _HTTP_status_get_msg(base_code, (unsigned)index);
     
-    if(!array)
-        return NULL;
-
-    str = array[index];
-
     return str;
 }
 
