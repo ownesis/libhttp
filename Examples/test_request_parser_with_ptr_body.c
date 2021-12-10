@@ -22,15 +22,11 @@ int main(void) {
     methode = HTTP_get_method(http);
     version = HTTP_get_version(http);
     
-    // /!\ return a malloc ptr
     path = HTTP_get_path(http);
 
     printf("Methode: %s\n", HTTP_method_to_str(http, methode));
     printf("Path: %s\n", path);
     printf("Version: %s\n", HTTP_version_to_str(http, version));
-
-    // free path
-    free(path);
 
     printf("\n------- start header -------\n");
     HTTP_show_header(http);

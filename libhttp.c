@@ -4,182 +4,12 @@
 
 #include "libhttp.h"
 
-/* @brief
- *  Write header inside buf
- *
- * @param list
- *  Pointer to HTTPList_t
- *
- * @param buf
- *  Pointer to buffer where write headers.
- *
- * @param buf_size
- *  Size of buf
- *
- * @return
- *  Size writted
- * */
-static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size);
-
-/* @brief
- *  Parse methode in raw
- *
- * @param http
- *  Pointer to http
- *
- * @param raw
- *  Pointer to buffer with method to parse.
- *
- * @return
- *  method len
- * */
-static size_t _HTTP_parse_method(HTTP_t *http, char *raw);
-
-/* @brief
- *  Parse version in raw
- *
- * @param http
- *  Pointer to http
- *
- * @param raw
- *  Pointer to buffer with version to parse.
- *
- * @return
- *  version len
- * */
-static size_t _HTTP_parse_version(HTTP_t *http, char *raw);
-
-/* @brief
- *  Parse header in raw
- *
- * @param http
- *  Pointer to http
- *
- * @param raw
- *  Pointer to buffer with headers to parse.
- *
- * @return
- *  Pointer to the end of headers in raw.
- * */
-static char *_HTTP_parse_header(HTTP_t *http, char *raw);
-
-/* @brief
- *  Get base code
- *  (Ex: base code of 404 and 302 is 400 and 300)
- *
- * @param code
- *  status_code enum.
- *
- * @return
- *  base code
- * */
-static int _HTTP_get_base_code(status_code_t code);
-
-/* @brief
- *  Get index of code
- *  (Ex: index of 404 and 302 is 4 and 2)
- *
- * @param code
- *  status_code enum.
- *
- * @return
- *  index of code.
- * */
-static int _HTTP_get_index_array_code(status_code_t code);
-
-/* @brief
- *  Get array of string by base code
- *  
- * @param http
- *  Pointer to http
- *
- * @param base_code
- *  Base code
- *
- * @return
- *  Array of strin.
- * */
-static char **_HTTP_get_array_by_base(HTTP_t *http, int base_code);
-
-/* @brief
- *  Get size of array of string by base_code
- *
- * @param base_code
- *  Base code
- *
- * @return size or HTTP_ERR
- * */
-static int _HTTP_get_size_status_array(int base_code);
-
-/* @brief
- *  Push HTTPDict struct pointer in list.
- *
- * @param list
- *  Adresse of pointer to list.
- *
- * @param dict
- *  Pointer to dict.
- *
- * @return
- *  HTTP_OK or HTTP_ERR
- * */
-static int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict);
-
-/* @brief
- *  Get size of query, len of key, value and more.
- *
- * @param http
- *  Pointer to http
- *
- * @return
- *  Size of query
- * */
-static size_t _HTTP_get_query_length(HTTP_t *http);
-
-/* @brief
- *  Get length  of all headers set, len of key and value.
- *
- * @param list
- *  Pointer to linked list
- *
- * @return
- *  Total length pg key(s)/value(s) string set in list
- * */
-static size_t _HTTP_get_headers_length(HTTPList_t *list);
-
-
-char *crlf_chomp(char *buff) {
-    buff[strcspn(buff, CRLF)] = '\0';
-    
-    return buff;
-}
-
-char *space_chomp(char *buff) {
-    buff[strcspn(buff, " ")] = '\0';
-
-    return buff;
-}
-
-char *HTTP_method_to_str(HTTP_t *http, method_t method) {
-    if ((unsigned)method < ARRAY_SIZE(http->req.array_str_meth))
-        return http->req.array_str_meth[method];
-    else
-        return NULL;
-}
-
 char *HTTP_version_to_str(HTTP_t *http, version_t version) {
     if ((unsigned)version < ARRAY_SIZE(http->array_str_ver))
         return http->array_str_ver[version];
     else
         return NULL;
 }   
-
-size_t HTTP_get_path_len(const HTTP_t *http) {
-    if (http->req.path_len > 0)
-        return (http->req.path_len - 1);
-    else
-        return 0;
-}
 
 size_t HTTP_get_body_size(const HTTP_t *http) {
     if (http->body.size > 0)
@@ -188,30 +18,12 @@ size_t HTTP_get_body_size(const HTTP_t *http) {
         return 0;
 }
 
-static size_t _HTTP_get_headers_length(HTTPList_t *list) {
+size_t _HTTP_get_headers_length(HTTPList_t *list) {
     struct HTTPList *tmp = list;
     size_t count = 0;
 
     while (tmp) {
-        count += (tmp->dict->val_len + tmp->dict->key_len);
-        tmp = tmp->next;   
-    }
-
-    return count;
-}
-
-static size_t _HTTP_get_query_length(HTTP_t *http) {
-    struct HTTPList *tmp = http->req.query;
-    size_t count = 0;
-    size_t nb = HTTP_get_nb_query(http);
-
-    if (nb) {
-        count += nb;
-        count += (nb - 1);
-    }
-
-    while (tmp) {
-        count += (tmp->dict->val_len + tmp->dict->key_len);
+        count += ((tmp->dict->val_len + 2) + (tmp->dict->key_len + 2)); /* 2 = ': ' and crlf*/
         tmp = tmp->next;   
     }
 
@@ -222,113 +34,7 @@ size_t HTTP_get_nb_headers(HTTP_t *http) {
     return http->headers_len;;
 }
 
-size_t HTTP_get_nb_query(HTTP_t *http) {
-    return http->req.query_len;;
-}
-
-size_t long_to_str(long dec, char *buf, size_t buf_size) {
-    return snprintf(buf, buf_size, "%ld", dec);
-}
-
-size_t HTTP_get_response_totalsize(HTTP_t *http) {
-    size_t total_size = 0;
-
-    /* len of version */
-    total_size += strlen(HTTP_version_to_str(http, http->version));
-
-    /* size of msg code */
-    total_size += http->res.str_code_len;
-
-    /* Total size of each header */
-    total_size += _HTTP_get_headers_length(http->headers);
-
-    /* size of body */
-    total_size += HTTP_get_body_size(http);
-  
-    /* before and after headers */
-    total_size += strlen(CRLF)*2;
-
-    return total_size;
-}
-
-size_t HTTP_get_request_totalsize(HTTP_t *http) {
-    size_t total_size = 0;
-    int tmp = 0;
-
-    /* len of method */
-    total_size += strlen(HTTP_method_to_str(http, http->req.method));
-
-    /* len of path */
-    total_size += HTTP_get_path_len(http)+2;   
-
-    /* space after path */
-    total_size++;
-
-    /* len of version */
-    total_size += strlen(HTTP_version_to_str(http, http->version));
-
-    /* Total size of each header */
-    total_size += _HTTP_get_headers_length(http->headers);
-    
-    /* Total size of each query */
-    tmp = _HTTP_get_query_length(http);
-        
-    if (tmp) {
-        total_size += 1; /* '?' start of query */
-        total_size += tmp;
-    }
-    
-    /* size of body */
-    total_size += HTTP_get_body_size(http);
-
-    /* before and after headers */
-    total_size += strlen(CRLF) * 2;
-
-    return total_size;
-}
-
-int HTTP_set_query(HTTP_t *http, const char *strkey, const char *strval) {
-    size_t key_len = strlen(strkey);
-    size_t val_len = strlen(strval);
-    char *key = malloc(key_len+1);
-    char *val = malloc(val_len+1);
-    int ret = 0;
-
-    if (!key || !val)
-        return HTTP_ERR;
-  
-    bzero(key, key_len+1);
-    bzero(val, val_len+1);
-   
-    if (!memcpy(key, strkey, key_len))
-        return HTTP_ERR;
-
-    if (!memcpy(val, strval, val_len))
-        return HTTP_ERR;
-
-    HTTPDict_t *dict = malloc(sizeof(struct HTTPDict));
-
-    if (!dict)
-        return HTTP_ERR;
-
-    bzero(dict, sizeof(struct HTTPList));
-
-    dict->key = key;
-    dict->key_len = key_len;
-    dict->val = val;
-    dict->val_len = val_len;
-
-    ret = _HTTP_list_push(&http->req.query, dict);
-    
-    if (!ret)
-        return HTTP_ERR;
-
-    http->req.query_len += 1;
-    
-    return HTTP_OK;
-}
-
-static int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict) {
+int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict) {
     HTTPList_t *curr = *list;
     HTTPList_t *tmp = NULL;
 
@@ -355,15 +61,15 @@ static int _HTTP_list_push(HTTPList_t **list, HTTPDict_t *dict) {
 int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     size_t key_len = strlen(strkey);
     size_t val_len = strlen(strval);
-    char *key = malloc(key_len+2+1); /* 2=': ' 1=0*/
-    char *val = malloc(val_len+2+1); /* 2=crlf 1=0 */
+    char *key = malloc(key_len+1);
+    char *val = malloc(val_len+1);
     int ret = 0;
 
     if (!key || !val)
         return HTTP_ERR;
     
-    bzero(key, key_len+3);
-    bzero(val, val_len+3);
+    bzero(key, key_len+1);
+    bzero(val, val_len+1);
    
     if (!memcpy(key, strkey, key_len))
         return HTTP_ERR;
@@ -371,11 +77,13 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     if (!memcpy(val, strval, val_len))
         return HTTP_ERR;
 
+#if 0
     if (!memcpy(key+key_len, ": ", 2))
         return HTTP_ERR;
 
     if (!memcpy(val+val_len, CRLF, 2))
         return HTTP_ERR;
+#endif
 
     HTTPDict_t *dict = malloc(sizeof(struct HTTPDict));
     if (!dict) return HTTP_ERR;
@@ -383,9 +91,9 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     bzero(dict, sizeof(struct HTTPList));
 
     dict->key = key;
-    dict->key_len = key_len+2;
+    dict->key_len = key_len;
     dict->val = val;
-    dict->val_len = val_len+2;
+    dict->val_len = val_len;
 
     ret = _HTTP_list_push(&http->headers, dict);
     if (!ret)
@@ -396,7 +104,7 @@ int HTTP_set_header(HTTP_t *http, const char *strkey, const char *strval) {
     return HTTP_OK;
 }
 
-static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
+size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
     size_t total_size = _HTTP_get_headers_length(list);
     char *buffer = malloc(total_size);
     char *tmp = buffer;
@@ -408,10 +116,20 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
         
         tmp = (tmp + list->dict->key_len);
 
+        if (!memcpy(tmp, ": ", 2))
+            return 0;
+
+        tmp = (tmp + 2);
+
         if (!memcpy(tmp, list->dict->val, list->dict->val_len))
             return 0;
         
         tmp = (tmp + list->dict->val_len);
+
+        if (!memcpy(tmp, CRLF, 2))
+            return 0;
+
+        tmp = (tmp + 2);
 
         list = list->next;
     }
@@ -424,194 +142,6 @@ static size_t _HTTP_write_header(HTTPList_t *list, void *buf, size_t buf_size) {
     free(buffer);
 
     return size_write; 
-}
-
-static size_t _HTTP_write_query(HTTPList_t *list, void *buf, size_t buf_size) {
-    char *buffer = malloc(buf_size);
-    char *tmp = buffer;
-    size_t size_write = 0;
-
-    if (!buffer)
-        return 0; 
-
-    bzero(buffer, buf_size);
-
-    if (list) {
-        tmp[0] = '?';
-        tmp = tmp + 1;
-        size_write += 1;
-    }
-
-    while (list) {
-        if (!memcpy(tmp, list->dict->key, list->dict->key_len))
-            return 0;
-        
-        size_write += list->dict->key_len;
-        tmp = tmp + list->dict->key_len;
-
-        tmp[0] = '=';
-        tmp = tmp + 1;
-        size_write += 1;
-
-        if (!memcpy(tmp, list->dict->val, list->dict->val_len))
-            return 0;
-        
-        size_write += list->dict->val_len;
-        tmp = tmp + list->dict->val_len;
-
-        if (list->next) {
-            tmp[0] = '&';
-            tmp = tmp + 1;
-            size_write += 1;
-        }
-
-        list = list->next;
-    }
-
-    if (!memcpy(buf, buffer, size_write))
-        return 0;
-
-    free(buffer);
-
-    return size_write;
-}
-
-size_t HTTP_make_raw_request(HTTP_t *header, void *buf, size_t buf_size) {
-    size_t method_size = strlen(HTTP_method_to_str(header, header->req.method));
-    size_t version_size = strlen(HTTP_version_to_str(header, header->version));;
-    size_t body_size = HTTP_get_body_size(header);
-    size_t total_size = HTTP_get_request_totalsize(header);
-    size_t size_write = 0;
-
-    char *tmp =  NULL; 
-    char *buffer = malloc(total_size); 
-    
-    if (!buffer) return 0;
-    
-    tmp = buffer;
-   
-    if (!memcpy(tmp, HTTP_method_to_str(header, header->req.method), method_size))
-        return 0;
-
-    tmp = (tmp + method_size);
-
-    if (!memcpy(tmp, header->req.path, header->req.path_len))
-        return 0;
-
-    tmp = (tmp + header->req.path_len);
-
-    if (header->req.query)
-        tmp += _HTTP_write_query(header->req.query, tmp, (_HTTP_get_query_length(header)+1));
-   
-    tmp[0] = ' ';
-    tmp = tmp + 1;
-
-    if (!memcpy(tmp, HTTP_version_to_str(header, header->version), version_size))
-        return 0;
-     
-    tmp = (tmp + version_size);
-
-    if (!memcpy(tmp, CRLF, 2))
-        return 0;
-
-    tmp = (tmp + 2);
-
-    tmp += _HTTP_write_header(header->headers, tmp, _HTTP_get_headers_length(header->headers));
-
-    if (!memcpy(tmp, CRLF, 2))
-        return 0;
-        
-    tmp = (tmp + 2);
-
-    if (!memcpy(tmp, header->body.data, body_size))
-        return 0;
-
-    size_write = SIZE_WRITE(buf_size, total_size);
-
-    if (!memcpy(buf, buffer, size_write))
-        return 0;
-
-    free(buffer);
-
-    return size_write;
-}
-
-size_t HTTP_make_raw_response(HTTP_t *http, void *buf, size_t buf_size) {
-    size_t total_size = HTTP_get_response_totalsize(http); 
-    size_t version_size = strlen(HTTP_version_to_str(http, http->version));
-    size_t size_header = _HTTP_get_headers_length(http->headers);
-    size_t size_write = 0;
-    char *tmp = NULL;
-    char *buffer = malloc(total_size);
-
-    if (!buffer) 
-        return 0;
-    
-    bzero(buffer, total_size);
-
-    tmp = buffer;
-
-    if (!memcpy(buffer, HTTP_version_to_str(http, http->version), version_size))
-        return 0;
-    
-    tmp = tmp+version_size;
-
-    if (!memcpy(tmp, http->res.str_code, http->res.str_code_len))
-        return 0;
-
-    tmp = tmp+http->res.str_code_len;
-
-    if (!memcpy(tmp, CRLF, 2))
-        return 0;
-
-    tmp = tmp+2;
-
-    tmp += _HTTP_write_header(http->headers, tmp, size_header);
-
-    if (!memcpy(tmp, CRLF, 2))
-        return 0;
-    
-    tmp = tmp+2;
-
-    if (!memcpy(tmp, http->body.data, http->body.size))
-        return 0;
-
-    size_write = SIZE_WRITE(buf_size, total_size);
-        
-    if (!memcpy(buf, buffer, size_write))
-        return 0;
-    
-    free(buffer);
-
-    return size_write;
-}
-
-int HTTP_set_path(HTTP_t *header, char *path) {
-    char *tmp = NULL;
-    size_t path_len = strlen(path);
-    size_t new_size = path_len+1; /* 1 = space at front*/
-
-    if (!path)
-        return HTTP_ERR;
-
-    if (path_len > PATH_MAX)
-        return HTTP_ERR;
-
-    header->req.path_len = new_size;
-    tmp = realloc(header->req.path, new_size);
-    
-    if (!tmp)
-        return HTTP_ERR;
-    
-    header->req.path = tmp;
-
-    header->req.path[0] = ' ';
-    if (!memcpy(header->req.path+1, path, path_len))
-        return HTTP_ERR;
-
-    //header->req.path[path_len+1] = ' ';
-
-    return HTTP_OK;
 }
 
 size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte) {
@@ -637,23 +167,7 @@ size_t HTTP_write_body(HTTP_t *http, void *buf, size_t nbyte) {
     return nbyte;
 }
 
-static size_t _HTTP_parse_method(HTTP_t *http, char *raw) {
-    size_t method_size = 0; 
-
-    for (size_t i = 0; i < NB_METHOD; i++) {
-        method_size = strlen(http->req.array_str_meth[i]);
-
-        if (strcmp(raw, http->req.array_str_meth[i]) == 0) {
-            http->req.method = i;
-            
-            return method_size;
-        }
-    }
-
-    return 0;
-}
-
-static size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
+size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
     size_t version_size = 0;
 
     for (size_t i = 0; i < NB_VERSION; i++) {
@@ -669,7 +183,7 @@ static size_t _HTTP_parse_version(HTTP_t *http, char *raw) {
     return 0;
 }
 
-static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
+char *_HTTP_parse_header(HTTP_t *http, char *raw) {
     char *key = NULL;
     char *val = NULL;
     size_t val_len = 0;
@@ -711,142 +225,11 @@ static char *_HTTP_parse_header(HTTP_t *http, char *raw) {
     return (raw + 2) /* 2=skip last CRLF*/;
 }
 
-int HTTP_parse_query(HTTP_t *http, void *raw) {
-    char *ptr = (char *)raw;
-    size_t key_len = 0;
-    size_t val_len = 0;
-    char *key = NULL;
-    char *val = NULL;
-    char *tmp = NULL;
-
-    tmp = strchr(ptr, '=');
-    if (!tmp) return HTTP_ERR;
-
-    key_len = (tmp - ptr);
-        
-    key = malloc(key_len+1);
-        
-    if (!key)
-        return HTTP_ERR;
-
-    bzero(key, key_len+1);
-
-    if (!memcpy(key, ptr, key_len))
-        return HTTP_ERR;
-
-    ptr = (ptr + key_len + 1); /* 1='=' */
-
-    tmp = strchr(ptr, '&');
-    
-    if (tmp) {
-        val_len = (tmp - ptr);
-        val = malloc(val_len+1);
-
-        if (!val) return HTTP_ERR;
-
-        bzero(val, val_len+1);
-        
-        if (!memcpy(val, ptr, val_len))
-            return HTTP_ERR;
-
-        HTTP_set_query(http, key, val);
-        
-        free(key);
-        free(val);
-
-        HTTP_parse_query(http, ptr+val_len+1);
-
-    } else {
-        tmp = strchr(ptr, '\0');
-        val_len = (tmp - ptr);
-        val = malloc(val_len+1);
-
-        if (!val) return HTTP_ERR;
-
-        bzero(val, val_len+1);
-        
-        if (!memcpy(val, ptr, val_len))
-            return HTTP_ERR;
-
-        HTTP_set_query(http, key, val);
-        
-        free(key);
-        free(val);
-    }
-
-    return HTTP_OK;
-}
-
-int HTTP_parse_req_raw(HTTP_t *http, void *raw, size_t size_raw) { 
-    char *ptr = (char *)raw;
-    char *tmp = NULL;
-    size_t body_size = 0;
-    int ret = 0;
-
-    char meth[10] = {0};
-    char path[PATH_MAX] = {0};
-    char ver[9] = {0};
-    size_t meth_len;
-    size_t version_len;
-    size_t path_len;
-
-    ret = sscanf(raw, "%9s %4095s %8s\r\n", meth, path, ver);
-    if (ret != 3)
-        return HTTP_ERR;
-
-    meth_len = _HTTP_parse_method(http, meth);
-    version_len = _HTTP_parse_version(http, ver);
-
-    tmp = strchr(path, '?');
-    if (tmp)
-        HTTP_parse_query(http, tmp+1);
-
-    if (!meth_len) 
-        return HTTP_METHOD_ERR;
-
-    if (!version_len)
-        return HTTP_VERSION_ERR;
-
-    HTTP_set_path(http, path);
-    
-    path_len = http->req.path_len;
-
-    ptr = (raw
-            + meth_len
-            + path_len
-            + version_len
-            + 2);
-
-    ptr = _HTTP_parse_header(http, ptr); 
-   
-    body_size = (size_raw - (ptr - (char *)raw));
-
-    if (body_size > 0) {
-        if (!HTTP_write_body(http, ptr, body_size))
-            return HTTP_ERR;
-    }
-
-    return HTTP_OK;
-}
-
 void HTTP_dict_clear(struct HTTPDict **dict) {
     if ((*dict)->key) free((*dict)->key);
     if ((*dict)->val) free((*dict)->val);
 
     free(*dict);
-}
-
-void HTTP_query_pop(HTTP_t *http) {
-    HTTPList_t *tmp = http->req.query->next;
-    
-    if (http->req.query_len > 0 && http->req.query) {
-        HTTP_dict_clear(&http->req.query->dict);
-        free(http->req.query);
-
-        http->req.query = tmp;
-    
-        http->req.query_len -= 1;
-    }
 }
 
 void HTTP_header_pop(HTTP_t *http) {
@@ -862,31 +245,14 @@ void HTTP_header_pop(HTTP_t *http) {
     }
 }
 
-void HTTP_show_query(HTTP_t *http) {
-    HTTPList_t *tmp = http->req.query;
-
-    while (tmp) {
-        printf("%s = ", tmp->dict->key);
-        printf("%s\n", tmp->dict->val);
-    
-        tmp = tmp->next;
-    }
-}
-
 void HTTP_show_header(HTTP_t *http) {
     HTTPList_t *tmp = http->headers;
 
     while (tmp) {
-        printf("%s", tmp->dict->key);
-        printf("%s", tmp->dict->val);
+        printf("%s: ", tmp->dict->key);
+        printf("%s\n", tmp->dict->val);
     
         tmp = tmp->next;
-    }
-}
-
-void HTTP_query_clear(HTTP_t *http) {
-    while (http->req.query) {
-        HTTP_query_pop(http);
     }
 }
 
@@ -894,135 +260,6 @@ void HTTP_headers_clear(HTTP_t *http) {
     while (http->headers) {
         HTTP_header_pop(http);
     }
-}
-
-static int _HTTP_get_base_code(status_code_t code) {
-    int base_code = -1;
-    unsigned int x, y;
-
-    code = (unsigned)code;
-
-    for (x = CODE_INFO, y = CODE_SUCCESS; 
-            x <= CODE_SERV_ERR; 
-            x += 100, y += 100) {
-    
-        if (code >= x && code < y)
-            return x;
-    }
-    
-    return base_code;
-}
-
-static int _HTTP_get_index_array_code(status_code_t code) {
-    int base_code = -1;
-    code = (unsigned)code;
-
-    base_code = _HTTP_get_base_code(code);
-  
-    if (base_code == -1)
-        return -1;
-
-    return (code - base_code);
-}
-
-static char **_HTTP_get_array_by_base(HTTP_t *http, int base_code) {
-    switch (base_code) {
-        case CODE_INFO:     return http->array_code.code_info;
-        case CODE_SUCCESS:  return http->array_code.code_success;
-        case CODE_REDIRECT: return http->array_code.code_redirect;
-        case CODE_CLI_ERR:  return http->array_code.code_cli_err;
-        case CODE_SERV_ERR: return http->array_code.code_serv_err;
-        default:            return NULL;
-    }    
-}
-
-static int _HTTP_get_size_status_array(int base_code) {
-    switch (base_code) {
-        case CODE_INFO:     return SIZE_CODE_INFO;
-        case CODE_SUCCESS:  return SIZE_CODE_SUCCESS;
-        case CODE_REDIRECT: return SIZE_CODE_REDIRECT;
-        case CODE_CLI_ERR:  return SIZE_CODE_CLI_ERR;
-        case CODE_SERV_ERR: return SIZE_CODE_SERV_ERR;
-        default:            return HTTP_ERR;
-    }    
-}
-
-char *HTTP_get_str_code(HTTP_t *http, status_code_t code) {
-    int base_code = 0; 
-    int index = -1;
-    int ret = 0;
-    char **array = NULL;
-    char *str = NULL;
-
-    code = (unsigned)code;
-
-    base_code = _HTTP_get_base_code(code);
- 
-    ret = _HTTP_get_size_status_array(base_code);
-    if (!ret)
-        return NULL;   
-
-    index = _HTTP_get_index_array_code(code);
-    if (index == -1)
-        return NULL;
-
-    if (index >= ret)
-        return NULL;
-
-    array = _HTTP_get_array_by_base(http, base_code);
-    
-    if(!array)
-        return NULL;
-
-    str = array[index];
-
-    return str;
-}
-
-int HTTP_set_status_code(HTTP_t *http, status_code_t code) {
-    char str_code[4] = {0};
-    char *tmp = NULL;
-    char *code_msg = NULL; 
-    size_t total_size = 0;
-    size_t len_strcode = 0;
-    size_t len_msg_code = 0;
-    int base_code = _HTTP_get_base_code(code);
-
-    if (base_code == -1)
-        return HTTP_ERR;
-    
-    http->res.code = code;
-
-    code_msg = HTTP_get_str_code(http, code);
-    
-    if (!code_msg) 
-        return HTTP_ERR;
-
-    len_strcode = long_to_str(code, str_code, 4);
-    len_msg_code = strlen(code_msg);
-    total_size = (len_strcode + len_msg_code + 2);
-
-    tmp = realloc(http->res.str_code, total_size);
-    
-    if (!tmp)
-        return HTTP_ERR;
-
-    if (!memcpy(tmp+1, str_code, len_strcode))
-        return HTTP_ERR;
-
-    tmp[0] = ' ';
-    tmp[len_strcode+1] = ' ';
-    
-    http->res.str_code = tmp;
-
-    tmp = tmp+(len_strcode + 2);
-
-    if (!memcpy(tmp, code_msg, len_msg_code))
-        return HTTP_ERR;
-
-    http->res.str_code_len = total_size;
-
-    return HTTP_OK;
 }
 
 HTTP_t *HTTP_init(void) {
@@ -1059,6 +296,7 @@ HTTP_t *HTTP_init(void) {
     http->req.method = -1;
     http->res.code = -1;
 
+#if 0
     struct _array_str code = {
         .code_info = {
             "Continue", "Switch protocol", 
@@ -1123,6 +361,7 @@ HTTP_t *HTTP_init(void) {
 
     if (!memcpy(&http->array_code, &code, sizeof(struct _array_str)))
         return NULL;
+#endif
 
     if (!memcpy(&http->req.array_str_meth, &array_meth, (NB_METHOD * sizeof(char *))))
         return NULL;
@@ -1143,52 +382,6 @@ void HTTP_clear(HTTP_t **http) {
     free(*http);
 }
 
-int HTTP_set_method(HTTP_t *http, method_t method) {
-    if ((unsigned)method < ARRAY_SIZE(http->req.array_str_meth))
-        http->req.method = method;
-    else
-        return HTTP_ERR;
-    
-    return HTTP_OK;
-}
-
-method_t HTTP_get_method(HTTP_t *http) {
-    return http->req.method;
-}
-
-status_code_t HTTP_get_status_code(HTTP_t *http) {
-    return http->res.code;
-}
-
-char *HTTP_get_path(HTTP_t *header) {
-    char *tmp = NULL;
-    size_t len = HTTP_get_path_len(header);
-    
-    tmp = malloc(len);
-    
-    if (!tmp) return NULL;
-
-    if (!memcpy(tmp, header->req.path+1, len))
-        return NULL;
-
-    tmp[len] = '\0';
-
-    return tmp;
-}
-
-int HTTP_set_version(HTTP_t *http, version_t version) {
-    if ((unsigned)version < ARRAY_SIZE(http->array_str_ver))
-        http->version = version;
-    else
-        return HTTP_ERR;
-    
-    return HTTP_OK;
-}
-
-version_t HTTP_get_version(const HTTP_t *http) {
-    return (http->version);
-}
-
 size_t HTTP_read_body(HTTP_t *http, void *buf, size_t nbyte) {
     if (!buf)
         return 0;
@@ -1201,110 +394,6 @@ size_t HTTP_read_body(HTTP_t *http, void *buf, size_t nbyte) {
         return 0;
 
     return nbyte;
-}
-
-int HTTP_parse_res_raw(HTTP_t *http, void *raw, size_t size_raw) {
-    char *ptr = (char *)raw;
-    char ver[9] = {0};
-    
-    size_t body_size = 0;
-    size_t ver_len = 0;
-    int ret = 0;
-    int code = 0;
-
-    ret = sscanf(raw, "%8s %d", ver, &code);
-    
-    if (ret != 2)
-        return HTTP_ERR;
-
-    ver_len = _HTTP_parse_version(http, ver);
-    
-    if (!ver_len)
-        return HTTP_VERSION_ERR;
-    
-    ret = HTTP_set_status_code(http, code);
-    
-    if (!ret)
-        return HTTP_STATUS_ERR;
-
-    ptr = strstr(ptr, "\r\n")+2;
-    
-    ptr = _HTTP_parse_header(http, ptr);
-    body_size = (size_raw - (ptr - (char *)raw));
-
-    if (body_size > 0) {
-        if (!HTTP_write_body(http, ptr, body_size))
-            return HTTP_ERR;
-    }
-
-    return HTTP_OK;
-}
-
-size_t HTTP_get_res_head_len(HTTP_t *http) {
-    size_t body_size = 0;
-    size_t total_size = 0;
-
-    body_size = HTTP_get_body_size(http);
-    total_size = HTTP_get_response_totalsize(http);
-
-    return (total_size - body_size);
-}
-
-size_t HTTP_get_req_head_len(HTTP_t *http) {
-    size_t body_size = 0;
-    size_t total_size = 0;
-
-    body_size = HTTP_get_body_size(http);
-    total_size = HTTP_get_request_totalsize(http);
-
-    return (total_size - body_size);
-}
-
-HTTPDict_t *HTTP_query_get_val_with_key(HTTP_t *http, const char *key) {
-    HTTPList_t *curr = http->req.query;
-    HTTPDict_t *dict = malloc(sizeof(HTTPDict_t));
-    size_t key_len = 0;
-    size_t val_len = 0;
-    int ret = -1;
-
-    if (!dict) return NULL;
-
-    while (curr) {
-        ret = strncmp(curr->dict->key, key, curr->dict->key_len);
-        
-        if (ret == 0) {
-            key_len = curr->dict->key_len;
-            
-            dict->key_len = key_len;
-            dict->key = malloc(key_len+1);
-
-            if (!dict->key) return NULL;
-
-            bzero(dict->key, key_len+1);
-
-            if(!memcpy(dict->key, key, key_len))
-                return NULL;
-
-            val_len = curr->dict->val_len;
-            dict->val_len = val_len;
-            dict->val = malloc(val_len + 1);
-            
-            if (!dict->val) return NULL;
-
-            bzero(dict->val, val_len+1);
-
-            if (!memcpy(dict->val, curr->dict->val, val_len))
-                return NULL;
-            
-            return dict;
-        }
-        
-        curr = curr->next;
-    }
-
-    free(dict);
-
-    return NULL;
 }
 
 HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
@@ -1357,4 +446,15 @@ HTTPDict_t *HTTP_headers_get_val_with_key(HTTP_t *http, const char *key) {
 
 HTTPBody_t *HTTP_get_body_ptr(HTTP_t *http) {
     return &http->body;  
+}
+
+size_t HTTP_header_get_array(HTTP_t *http, HTTPDict_t *array[], size_t array_size) {
+    HTTPList_t *tmp = http->headers;
+    size_t count;
+
+    for (count = 0; tmp && count < array_size; tmp = tmp->next, count++) {
+        array[count] = tmp->dict;
+    }
+
+    return count;
 }

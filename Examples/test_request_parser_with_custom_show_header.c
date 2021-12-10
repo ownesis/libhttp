@@ -3,9 +3,17 @@
 #include <string.h>
 #include <libhttp/http.h>
 
+void show_header(HTTPDict_t *array[], size_t size) {
+    for (size_t x = 0; x < size; x++) {
+        printf("Key (%ld): %s\n", array[x]->key_len, array[x]->key);
+        printf("Value (%ld): %s\n\n", array[x]->val_len, array[x]->val);
+    }
+}
+
 int main(void) {
     version_t version;
     method_t methode;
+    size_t nb_headers;
     char *path = NULL;
     char data[BUFSIZ] = {0};
     
@@ -28,8 +36,14 @@ int main(void) {
     printf("Path: %s\n", path);
     printf("Version: %s\n", HTTP_version_to_str(http, version));
 
-    printf("\n------- start header -------\n");
-    HTTP_show_header(http);
+    nb_headers = HTTP_get_nb_headers(http);
+
+    HTTPDict_t *array[nb_headers];
+
+    HTTP_header_get_array(http, array, nb_headers);
+
+    printf("\n------- start header -------\n\n");
+    show_header(array, nb_headers);
     printf("----------- end header -------\n");
 
     HTTP_read_body(http, data, BUFSIZ);

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "libhttp/http.h"
+#include <libhttp/http.h>
 
 int main(void) {
     char buffer[BUFSIZ] = {0};
